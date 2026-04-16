@@ -12,23 +12,21 @@ public class DatabaseConnection {
 
     private static Connection connection;
 
-    private DatabaseConnection() {
-    }// Private constructor to prevent instantiation (Singleton pattern)
+    private DatabaseConnection() {} // Private constructor to prevent instantiation (Singleton pattern)
 
     public static Connection getConnection() {
-        if (connection == null) {
-            try {
-                // Ensure the PostgreSQL driver is loaded
-                Class.forName("org.postgresql.Driver");
+        try {
+            if (connection == null || connection.isClosed()) { // Check if the connection is null OR if it has been closed
+                Class.forName("org.postgresql.Driver"); // Ensure the PostgreSQL driver is loaded
                 connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
                 System.out.println("Database connection established successfully!");
-            } catch (ClassNotFoundException e) {
-                System.err.println("PostgreSQL JDBC Driver is not found. Include it in your library path.");
-                e.printStackTrace();
-            } catch (SQLException e) {
-                System.err.println("Database connection failed. Please check your credentials and database URL.");
-                e.printStackTrace();
             }
+        } catch (ClassNotFoundException e) {
+            System.err.println("PostgreSQL JDBC Driver is not found. Include it in your library path.");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.err.println("Database connection failed. Please check your credentials and database URL.");
+            e.printStackTrace();
         }
         return connection;
     }
