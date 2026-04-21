@@ -5,28 +5,27 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnection {
-    // Database credentials
-    private static final String USERNAME = "postgres";
-    private static final String PASSWORD = "1234";
-    private static final String URL = "jdbc:postgresql://localhost:5432/postgres";
-
+    // Create a file named "stox.db" in the project's root folder
+    private static final String URL = "jdbc:sqlite:stox.db";
     private static Connection connection;
 
-    private DatabaseConnection() {} // Private constructor to prevent instantiation (Singleton pattern)
+    private DatabaseConnection() {
+    }// Private constructor to prevent instantiation (Singleton pattern)
 
     public static Connection getConnection() {
-        try {
-            if (connection == null || connection.isClosed()) { // Check if the connection is null OR if it has been closed
-                Class.forName("org.postgresql.Driver"); // Ensure the PostgreSQL driver is loaded
-                connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-                System.out.println("Database connection established successfully!");
+        if (connection == null) {
+            try {
+                if (connection == null || connection.isClosed()) {
+                    // Load the SQLite driver
+                    Class.forName("org.sqlite.JDBC");
+                    connection = DriverManager.getConnection(URL);
+                    System.out.println("SQLite Database connection established successfully!");
+                }
+
+            } catch (ClassNotFoundException | SQLException e) {
+                System.err.println("Database connection failed.");
+                e.printStackTrace();
             }
-        } catch (ClassNotFoundException e) {
-            System.err.println("PostgreSQL JDBC Driver is not found. Include it in your library path.");
-            e.printStackTrace();
-        } catch (SQLException e) {
-            System.err.println("Database connection failed. Please check your credentials and database URL.");
-            e.printStackTrace();
         }
         return connection;
     }

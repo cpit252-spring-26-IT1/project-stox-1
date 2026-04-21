@@ -12,21 +12,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Concrete implementation of StockDAO for PostgreSQL.
+ * Concrete implementation of StockDAO for an embedded SQLite database.
  */
-public class PostgresStockDAO implements StockDAO {
+public class SqliteStockDAO implements StockDAO {
 
-    public PostgresStockDAO() {
+    public SqliteStockDAO() {
         createTableIfNotExists();
     }
 
     private void createTableIfNotExists() {
         String sql = "CREATE TABLE IF NOT EXISTS stocks (" +
-                "id SERIAL PRIMARY KEY," +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "ticker VARCHAR(10) UNIQUE NOT NULL," +
                 "market VARCHAR(50)," +
                 "quantity INTEGER NOT NULL," +
-                "average_buy_price NUMERIC(10, 2) NOT NULL" +
+                "average_buy_price REAL NOT NULL" +
                 ")";
 
         Connection conn = DatabaseConnection.getConnection();
@@ -70,14 +70,15 @@ public class PostgresStockDAO implements StockDAO {
 
         Connection conn = DatabaseConnection.getConnection();
         try (Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+             ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 Stock stock = new Stock(
                         rs.getString("ticker"),
                         rs.getString("market"),
                         rs.getInt("quantity"),
-                        rs.getDouble("average_buy_price"));
+                        rs.getDouble("average_buy_price")
+                );
                 portfolio.add(stock);
             }
         } catch (SQLException e) {
