@@ -3,7 +3,7 @@ package sa.edu.kau.fcit.cpit252.project.model;
 /**
  * Model class representing a Stock.
  */
-public class Stock {
+public class Stock implements PortfolioComponent {
     private String ticker;
     private String market;
     private int quantity;
@@ -58,5 +58,20 @@ public class Stock {
                 ", quantity=" + quantity +
                 ", averageBuyPrice=" + averageBuyPrice +
                 '}';
+    }
+
+    @Override
+    public String getName() {
+        return ticker;
+    }
+
+    @Override
+    public double getValue() {
+        return quantity * averageBuyPrice;
+    }
+
+    @Override
+    public void display(String indent) {
+        System.out.println(indent + "stock: " + ticker + " | value: " + getValue());
     }
 }
