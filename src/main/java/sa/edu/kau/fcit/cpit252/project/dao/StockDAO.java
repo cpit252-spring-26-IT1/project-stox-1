@@ -8,23 +8,21 @@ import java.util.List;
  */
 public interface StockDAO {
 
-    /**
-     * Add a new stock to the portfolio.
-     */
+    /** Add a new stock to the portfolio. */
     void addStock(Stock stock);
 
-    /**
-     * Retrieve all stocks in the portfolio.
-     */
+    /** Retrieve all stocks in the portfolio. */
     List<Stock> getPortfolio();
 
-    /**
-     * Update an existing stock in the portfolio.
-     */
+    /** Retrieve stocks filtered by portfolio name. */
+    List<Stock> getStocksByPortfolio(String portfolioName);
+
+    /** Update an existing stock in the portfolio. */
     void updateStock(Stock stock);
 
-    /**
-     * Remove a stock from the portfolio by its ticker symbol.
-     */
-    void removeStock(String ticker);
+    /** Remove a stock by ticker AND portfolio name to avoid cross-portfolio deletions. */
+    void removeStock(String ticker, String portfolioName);
+
+    /** Get all distinct portfolio names. */
+    List<String> getAllPortfolioNames();
 }
