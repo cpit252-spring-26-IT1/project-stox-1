@@ -1,5 +1,7 @@
 # stoX: Stocks Portfolio Manager
-
+<p align="center">
+  <img src="assets/logo.png" alt="stoX Logo" />
+</p>
 ## Description
 A desktop application designed to solve the fragmentation of asset tracking for modern investors.
 By unifying live market data from both the US market and the Saudi Exchange (Tadawul), stoX provides a
@@ -49,7 +51,8 @@ cd target
 java -jar course-project-1.0-SNAPSHOT.jar
 ```
 ## Screenshots
-
+![stoX UI Dashboard](assets/ui-screenshot.png)
+![Add Stock Submenu](assets/ui-screenshot2.png)
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
