@@ -2,6 +2,7 @@
 <p align="center">
   <img src="assets/logo.png" alt="stoX Logo" />
 </p>
+
 ## Description
 A desktop application designed to solve the fragmentation of asset tracking for modern investors.
 By unifying live market data from both the US market and the Saudi Exchange (Tadawul), stoX provides a
