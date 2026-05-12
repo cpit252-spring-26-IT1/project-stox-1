@@ -1,6 +1,12 @@
 # Compiled class file
 *.class
 
+# Environment variables
+.env
+
+# Database .db
+*.db
+
 # Log file
 *.log
 

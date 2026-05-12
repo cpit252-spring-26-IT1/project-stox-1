@@ -9,6 +9,7 @@ public class Stock implements PortfolioComponent {
     private int quantity;
     private double averageBuyPrice;
     private String portfolioName;
+    private double currentPrice; // Live market price
 
     public Stock() {}
 
@@ -42,6 +43,9 @@ public class Stock implements PortfolioComponent {
 
     public String getPortfolioName() { return portfolioName; }
     public void setPortfolioName(String portfolioName) { this.portfolioName = portfolioName; }
+
+    public double getCurrentPrice() { return currentPrice; }
+    public void setCurrentPrice(double currentPrice) { this.currentPrice = currentPrice; }
 
     @Override
     public String getName() { return ticker; }

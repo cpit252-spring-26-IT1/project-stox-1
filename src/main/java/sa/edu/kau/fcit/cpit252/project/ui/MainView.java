@@ -20,7 +20,11 @@ import sa.edu.kau.fcit.cpit252.project.model.Stock;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import javafx.application.Platform;
+import sa.edu.kau.fcit.cpit252.project.api.FetcherFactory;
+import sa.edu.kau.fcit.cpit252.project.api.PriceFetcher;
 
 /**
  * Main JavaFX view for stoX.
@@ -42,7 +46,7 @@ public class MainView {
     private static final String DANGER     = "#f85149";
 
     private static final String ALL_PORTFOLIOS = "All Portfolios";
-    private static final String MARKET_US      = "US Market - Alpha Vantage";
+    private static final String MARKET_US      = "US Market - Finnhub";
     private static final String MARKET_SA      = "Saudi Market - Tadawul";
 
 
@@ -59,6 +63,8 @@ public class MainView {
     private Label totalValueLabel;
     private Label stockCountLabel;
     private Label portfolioCountLabel;
+    private TableView<Stock> table;
+    private boolean isRefreshingDropdown = false;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -156,6 +162,7 @@ public class MainView {
                 ";-fx-font-family:'Courier New';-fx-font-size:13;");
 
         portfolioFilter.setOnAction(e -> {
+            if (isRefreshingDropdown) return;
             String selected = portfolioFilter.getValue();
             if (selected != null) {
                 // Strip the count badge "(n)" before querying — e.g. "Tech (3)" → "Tech"
@@ -181,7 +188,7 @@ public class MainView {
 
     @SuppressWarnings("unchecked")
     private TableView<Stock> buildTable() {
-        TableView<Stock> table = new TableView<>(tableData);
+        this.table = new TableView<>(tableData);
         table.setStyle("-fx-background-color:" + BG_PANEL + ";-fx-border-color:" + BORDER +
                        ";-fx-border-radius:8;-fx-table-cell-border-color:" + BORDER + ";");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -193,6 +200,7 @@ public class MainView {
         TableColumn<Stock, String>  tickerCol    = makeCol("TICKER",       "ticker",          100);
         TableColumn<Stock, String>  marketCol    = makeCol("MARKET",       "market",          140);
         TableColumn<Stock, String>  portfolioCol = makeCol("PORTFOLIO",    "portfolioName",   160);
+        TableColumn<Stock, Double>  priceCol     = makeCol("CURRENT PRICE ($)", "currentPrice", 140);
         TableColumn<Stock, Integer> qtyCol       = makeCol("QTY",          "quantity",         70);
         TableColumn<Stock, Double>  avgCol       = makeCol("AVG BUY ($)",  "averageBuyPrice", 120);
 
@@ -237,7 +245,7 @@ public class MainView {
         });
 
         table.getColumns().addAll(
-                tickerCol, marketCol, portfolioCol, qtyCol, avgCol, valueCol, deleteCol);
+                tickerCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, deleteCol);
         return table;
     }
 
@@ -385,6 +393,20 @@ public class MainView {
         Portfolio rootPortfolio = new Portfolio(portfolioName);
         for (Stock stock : stocks) {
             rootPortfolio.add(stock);
+            
+            // Asynchronously fetch live prices
+            CompletableFuture.runAsync(() -> {
+                try {
+                    PriceFetcher fetcher = FetcherFactory.getFetcher(stock.getMarket());
+                    double livePrice = fetcher.fetchPrice(stock.getTicker());
+                    Platform.runLater(() -> {
+                        stock.setCurrentPrice(livePrice);
+                        if (table != null) table.refresh();
+                    });
+                } catch (Exception e) {
+                    System.err.println("Failed to fetch real price for " + stock.getTicker() + ": " + e.getMessage());
+                }
+            });
         }
 
         tableData.setAll(stocks);
@@ -393,10 +415,12 @@ public class MainView {
     }
 
     private void refreshDropdown() {
-        String current = currentFilter();
-
-        // Count stocks per user portfolio for the badges
-        List<Stock> all = dao.getPortfolio();
+        isRefreshingDropdown = true;
+        try {
+            String current = currentFilter();
+    
+            // Count stocks per user portfolio for the badges
+            List<Stock> all = dao.getPortfolio();
         Map<String, Long> counts = all.stream()
                 .collect(Collectors.groupingBy(Stock::getPortfolioName, Collectors.counting()));
 
@@ -489,6 +513,9 @@ public class MainView {
                 .findFirst()
                 .orElse(ALL_PORTFOLIOS);
         portfolioFilter.setValue(restored);
+        } finally {
+            isRefreshingDropdown = false;
+        }
     }
 
     /** "Tech (3)" → "Tech"  |  "🇺🇸  US Market (6)" → "🇺🇸  US Market" */
