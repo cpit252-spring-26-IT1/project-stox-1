@@ -14,12 +14,17 @@ public class FetcherFactory {
             throw new IllegalArgumentException("Market cannot be null");
         }
         
+        PriceFetcher baseFetcher;
         if (market.contains("Saudi Market - Tadawul") || market.contains("Saudi")) {
-            return new SahmkFetcher();
+            baseFetcher = new SahmkFetcher();
         } else if (market.contains("US Market - Finnhub") || market.contains("US")) {
-            return new FinnhubFetcher();
+            baseFetcher = new FinnhubFetcher();
+        } else {
+            throw new IllegalArgumentException("Unknown market type: " + market);
         }
-        
-        throw new IllegalArgumentException("Unknown market type: " + market);
+
+        // Wrap the base fetcher with Retry (Decorator) and then Cache (Proxy)
+        PriceFetcher withRetry = new RetryPriceFetcher(baseFetcher);
+        return new CachedPriceFetcher(withRetry);
     }
 }

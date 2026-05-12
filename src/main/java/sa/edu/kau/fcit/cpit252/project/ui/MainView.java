@@ -35,20 +35,19 @@ public class MainView {
 
     // ── Palette ───────────────────────────────────────────────────────────────
 
-    private static final String BG_DEEP    = "#0d1117";
-    private static final String BG_PANEL   = "#161b22";
-    private static final String BG_ROW     = "#1c2128";
-    private static final String ACCENT     = "#00d4aa";
+    private static final String BG_DEEP = "#0d1117";
+    private static final String BG_PANEL = "#161b22";
+    private static final String BG_ROW = "#1c2128";
+    private static final String ACCENT = "#00d4aa";
     private static final String ACCENT_DIM = "#00a882";
-    private static final String TEXT_PRI   = "#e6edf3";
-    private static final String TEXT_SEC   = "#8b949e";
-    private static final String BORDER     = "#30363d";
-    private static final String DANGER     = "#f85149";
+    private static final String TEXT_PRI = "#e6edf3";
+    private static final String TEXT_SEC = "#8b949e";
+    private static final String BORDER = "#30363d";
+    private static final String DANGER = "#f85149";
 
     private static final String ALL_PORTFOLIOS = "All Portfolios";
-    private static final String MARKET_US      = "US Market - Finnhub";
-    private static final String MARKET_SA      = "Saudi Market - Tadawul";
-
+    private static final String MARKET_US = "US Market - Finnhub";
+    private static final String MARKET_SA = "Saudi Market - Tadawul";
 
     private static final String FILTER_US = "🇺🇸  US Market";
     private static final String FILTER_SA = "🇸🇦  Saudi Market";
@@ -72,8 +71,8 @@ public class MainView {
         this.primaryStage = stage;
 
         stage.setTitle("stoX — Portfolio Manager");
-        stage.setMinWidth(900);
-        stage.setMinHeight(620);
+        stage.setMinWidth(1280);
+        stage.setMinHeight(720);
 
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color:" + BG_DEEP + ";");
@@ -92,13 +91,13 @@ public class MainView {
     private HBox buildHeader() {
         HBox header = new HBox();
         header.setStyle("-fx-background-color:" + BG_PANEL +
-                        ";-fx-border-color:" + BORDER + ";-fx-border-width:0 0 1 0;");
+                ";-fx-border-color:" + BORDER + ";-fx-border-width:0 0 1 0;");
         header.setPadding(new Insets(16, 24, 16, 24));
         header.setAlignment(Pos.CENTER_LEFT);
 
-        Label logo  = makeLabel("sto", "Georgia", 26, TEXT_PRI, true);
-        Label logoX = makeLabel("X",   "Georgia", 26, ACCENT,   true);
-        Label tag   = makeLabel("  Portfolio Manager", "Courier New", 13, TEXT_SEC, false);
+        Label logo = makeLabel("sto", "Georgia", 26, TEXT_PRI, true);
+        Label logoX = makeLabel("X", "Georgia", 26, ACCENT, true);
+        Label tag = makeLabel("  Portfolio Manager", "Courier New", 13, TEXT_SEC, false);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -123,8 +122,8 @@ public class MainView {
 
     private HBox buildStatsRow() {
         // Card 1: Total value
-        totalValueLabel    = makeLabel("$ 0.00",      "Courier New", 30, ACCENT,    true);
-        stockCountLabel    = makeLabel("0 assets",    "Courier New", 13, TEXT_SEC,  false);
+        totalValueLabel = makeLabel("$ 0.00", "Courier New", 30, ACCENT, true);
+        stockCountLabel = makeLabel("0 assets", "Courier New", 13, TEXT_SEC, false);
         VBox valueCard = new VBox(3,
                 makeLabel("TOTAL VALUE", "Courier New", 11, TEXT_SEC, false),
                 totalValueLabel,
@@ -145,8 +144,8 @@ public class MainView {
 
     private void styleCard(VBox card) {
         card.setStyle("-fx-background-color:" + BG_PANEL +
-                      ";-fx-background-radius:8;-fx-border-color:" + BORDER +
-                      ";-fx-border-radius:8;");
+                ";-fx-background-radius:8;-fx-border-color:" + BORDER +
+                ";-fx-border-radius:8;");
         card.setPadding(new Insets(14, 22, 14, 22));
     }
 
@@ -157,12 +156,13 @@ public class MainView {
         portfolioFilter.setPrefWidth(260);
         portfolioFilter.setStyle(
                 "-fx-background-color:" + BG_PANEL +
-                ";-fx-border-color:" + BORDER + ";-fx-border-radius:6;" +
-                "-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
-                ";-fx-font-family:'Courier New';-fx-font-size:13;");
+                        ";-fx-border-color:" + BORDER + ";-fx-border-radius:6;" +
+                        "-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
+                        ";-fx-font-family:'Courier New';-fx-font-size:13;");
 
         portfolioFilter.setOnAction(e -> {
-            if (isRefreshingDropdown) return;
+            if (isRefreshingDropdown)
+                return;
             String selected = portfolioFilter.getValue();
             if (selected != null) {
                 // Strip the count badge "(n)" before querying — e.g. "Tech (3)" → "Tech"
@@ -190,32 +190,35 @@ public class MainView {
     private TableView<Stock> buildTable() {
         this.table = new TableView<>(tableData);
         table.setStyle("-fx-background-color:" + BG_PANEL + ";-fx-border-color:" + BORDER +
-                       ";-fx-border-radius:8;-fx-table-cell-border-color:" + BORDER + ";");
+                ";-fx-border-radius:8;-fx-table-cell-border-color:" + BORDER + ";");
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         VBox.setVgrow(table, Priority.ALWAYS);
         table.setPlaceholder(makeLabel(
                 "No stocks yet. Click '＋ Add Stock' to begin.",
                 "Courier New", 13, TEXT_SEC, false));
 
-        TableColumn<Stock, String>  tickerCol    = makeCol("TICKER",       "ticker",          100);
-        TableColumn<Stock, String>  marketCol    = makeCol("MARKET",       "market",          140);
-        TableColumn<Stock, String>  portfolioCol = makeCol("PORTFOLIO",    "portfolioName",   160);
-        TableColumn<Stock, Double>  priceCol     = makeCol("CURRENT PRICE ($)", "currentPrice", 140);
-        TableColumn<Stock, Integer> qtyCol       = makeCol("QTY",          "quantity",         70);
-        TableColumn<Stock, Double>  avgCol       = makeCol("AVG BUY ($)",  "averageBuyPrice", 120);
+        TableColumn<Stock, String> tickerCol = makeCol("TICKER", "ticker", 100);
+        TableColumn<Stock, String> marketCol = makeCol("MARKET", "market", 140);
+        TableColumn<Stock, String> portfolioCol = makeCol("PORTFOLIO", "portfolioName", 160);
+        TableColumn<Stock, Double> priceCol = makeCol("CURRENT PRICE ($)", "currentPrice", 140);
+        TableColumn<Stock, Integer> qtyCol = makeCol("QTY", "quantity", 70);
+        TableColumn<Stock, Double> avgCol = makeCol("AVG BUY ($)", "averageBuyPrice", 120);
 
         // Computed total value column
         TableColumn<Stock, String> valueCol = new TableColumn<>("TOTAL VALUE ($)");
-        valueCol.setCellValueFactory(cd ->
-            new javafx.beans.property.SimpleStringProperty(
+        valueCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(
                 String.format("%,.2f", cd.getValue().getValue())));
         valueCol.setCellFactory(tc -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
+            @Override
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); return; }
+                if (empty || item == null) {
+                    setText(null);
+                    return;
+                }
                 setText(item);
                 setStyle("-fx-text-fill:" + ACCENT + ";-fx-font-family:'Courier New';" +
-                         "-fx-alignment:CENTER-RIGHT;");
+                        "-fx-alignment:CENTER-RIGHT;");
             }
         });
 
@@ -227,7 +230,7 @@ public class MainView {
             private final Button btn = new Button("✕");
             {
                 btn.setStyle("-fx-background-color:transparent;-fx-text-fill:" + DANGER +
-                             ";-fx-font-size:14;-fx-cursor:hand;");
+                        ";-fx-font-size:14;-fx-cursor:hand;");
                 btn.setOnAction(e -> {
                     Stock s = getTableView().getItems().get(getIndex());
                     // Confirm before deleting
@@ -238,7 +241,9 @@ public class MainView {
                     }
                 });
             }
-            @Override protected void updateItem(Void item, boolean empty) {
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
                 setGraphic(empty ? null : btn);
             }
@@ -268,7 +273,8 @@ public class MainView {
         tickerField.textProperty().addListener((obs, oldVal, newVal) -> {
             // Strip anything that is not A-Z, a-z, or 0-9
             String filtered = newVal.replaceAll("[^A-Za-z0-9]", "");
-            if (!filtered.equals(newVal)) tickerField.setText(filtered);
+            if (!filtered.equals(newVal))
+                tickerField.setText(filtered);
         });
 
         // Market auto-detect preview label updates as user types
@@ -292,10 +298,10 @@ public class MainView {
         portfolioBox.setMaxWidth(Double.MAX_VALUE);
         portfolioBox.setItems(FXCollections.observableArrayList(dao.getAllPortfolioNames()));
         portfolioBox.setStyle("-fx-background-color:" + BG_ROW + ";-fx-border-color:" + BORDER +
-                              ";-fx-border-radius:6;-fx-background-radius:6;" +
-                              "-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Courier New';");
+                ";-fx-border-radius:6;-fx-background-radius:6;" +
+                "-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Courier New';");
 
-        TextField qtyField   = makeField("Quantity");
+        TextField qtyField = makeField("Quantity");
         TextField priceField = makeField("Average Buy Price ($)");
 
         Label errorLabel = makeLabel("", "Courier New", 12, DANGER, false);
@@ -304,19 +310,40 @@ public class MainView {
         Button saveBtn = makeButton("Save Stock", ACCENT, BG_DEEP);
         saveBtn.setMaxWidth(Double.MAX_VALUE);
         saveBtn.setOnAction(e -> {
-            String ticker    = tickerField.getText().trim().toUpperCase();
+            String ticker = tickerField.getText().trim().toUpperCase();
             String portfolio = portfolioBox.getEditor().getText().trim();
 
-            if (ticker.isEmpty())    { errorLabel.setText("Ticker symbol is required.");  return; }
-            if (portfolio.isEmpty()) { errorLabel.setText("Portfolio name is required."); return; }
+            if (ticker.isEmpty()) {
+                errorLabel.setText("Ticker symbol is required.");
+                return;
+            }
+            if (portfolio.isEmpty()) {
+                errorLabel.setText("Portfolio name is required.");
+                return;
+            }
 
-            int qty; double price;
-            try { qty   = Integer.parseInt(qtyField.getText().trim()); }
-            catch (NumberFormatException ex) { errorLabel.setText("Quantity must be a whole number."); return; }
-            try { price = Double.parseDouble(priceField.getText().trim()); }
-            catch (NumberFormatException ex) { errorLabel.setText("Price must be a valid number.");    return; }
-            if (qty   <= 0) { errorLabel.setText("Quantity must be greater than 0."); return; }
-            if (price <= 0) { errorLabel.setText("Price must be greater than 0.");    return; }
+            int qty;
+            double price;
+            try {
+                qty = Integer.parseInt(qtyField.getText().trim());
+            } catch (NumberFormatException ex) {
+                errorLabel.setText("Quantity must be a whole number.");
+                return;
+            }
+            try {
+                price = Double.parseDouble(priceField.getText().trim());
+            } catch (NumberFormatException ex) {
+                errorLabel.setText("Price must be a valid number.");
+                return;
+            }
+            if (qty <= 0) {
+                errorLabel.setText("Quantity must be greater than 0.");
+                return;
+            }
+            if (price <= 0) {
+                errorLabel.setText("Price must be greater than 0.");
+                return;
+            }
 
             // Auto-detect market from ticker
             String market = ticker.matches("\\d+") ? MARKET_SA : MARKET_US;
@@ -359,7 +386,7 @@ public class MainView {
 
         alert.getDialogPane().setStyle(
                 "-fx-background-color:" + BG_PANEL + ";" +
-                "-fx-border-color:" + BORDER + ";");
+                        "-fx-border-color:" + BORDER + ";");
         alert.getDialogPane().lookup(".content.label").setStyle(
                 "-fx-text-fill:" + TEXT_SEC + ";-fx-font-family:'Courier New';");
 
@@ -393,7 +420,7 @@ public class MainView {
         Portfolio rootPortfolio = new Portfolio(portfolioName);
         for (Stock stock : stocks) {
             rootPortfolio.add(stock);
-            
+
             // Asynchronously fetch live prices
             CompletableFuture.runAsync(() -> {
                 try {
@@ -401,7 +428,8 @@ public class MainView {
                     double livePrice = fetcher.fetchPrice(stock.getTicker());
                     Platform.runLater(() -> {
                         stock.setCurrentPrice(livePrice);
-                        if (table != null) table.refresh();
+                        if (table != null)
+                            table.refresh();
                     });
                 } catch (Exception e) {
                     System.err.println("Failed to fetch real price for " + stock.getTicker() + ": " + e.getMessage());
@@ -418,109 +446,107 @@ public class MainView {
         isRefreshingDropdown = true;
         try {
             String current = currentFilter();
-    
+
             // Count stocks per user portfolio for the badges
             List<Stock> all = dao.getPortfolio();
-        Map<String, Long> counts = all.stream()
-                .collect(Collectors.groupingBy(Stock::getPortfolioName, Collectors.counting()));
+            Map<String, Long> counts = all.stream()
+                    .collect(Collectors.groupingBy(Stock::getPortfolioName, Collectors.counting()));
 
-        long usCount = all.stream().filter(s -> MARKET_US.equals(s.getMarket())).count();
-        long saCount = all.stream().filter(s -> MARKET_SA.equals(s.getMarket())).count();
+            long usCount = all.stream().filter(s -> MARKET_US.equals(s.getMarket())).count();
+            long saCount = all.stream().filter(s -> MARKET_SA.equals(s.getMarket())).count();
 
-        ObservableList<String> items = FXCollections.observableArrayList();
+            ObservableList<String> items = FXCollections.observableArrayList();
 
-        // ── Fixed items at the top ─────────────────────────────────────────
-        items.add(ALL_PORTFOLIOS);
-        items.add(FILTER_US + " (" + usCount + ")");
-        items.add(FILTER_SA + " (" + saCount + ")");
-        // ── Separator label (non-selectable visual divider) ────────────────
-        items.add("── Your Portfolios ──");
-        // ── User portfolios with badges ────────────────────────────────────
-        for (String name : dao.getAllPortfolioNames()) {
-            items.add(name + " (" + counts.getOrDefault(name, 0L) + ")");
-        }
-
-        portfolioFilter.setItems(items);
-
-        // Make the separator non-selectable and style all cells explicitly
-        portfolioFilter.setCellFactory(lv -> new ListCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("-fx-background-color:" + BG_PANEL + ";");
-                    setDisable(false);
-                    return;
-                }
-                if (item.startsWith("──")) {
-
-                    setText(item);
-                    setDisable(true);
-                    setStyle(
-                        "-fx-background-color:" + BG_DEEP + ";" +
-                        "-fx-text-fill:" + TEXT_SEC + ";" +
-                        "-fx-font-size:11;" +
-                        "-fx-font-family:'Courier New';" +
-                        "-fx-opacity:1;"
-                    );
-                } else {
-
-                    setText(item);
-                    setDisable(false);
-                    setStyle(
-                        "-fx-background-color:" + BG_PANEL + ";" +
-                        "-fx-text-fill:" + TEXT_PRI + ";" +
-                        "-fx-font-family:'Courier New';" +
-                        "-fx-font-size:13;"
-                    );
-
-                    setOnMouseEntered(e -> {
-                        if (!isDisabled()) setStyle(
-                            "-fx-background-color:" + BG_ROW + ";" +
-                            "-fx-text-fill:" + ACCENT + ";" +
-                            "-fx-font-family:'Courier New';" +
-                            "-fx-font-size:13;"
-                        );
-                    });
-                    setOnMouseExited(e -> setStyle(
-                        "-fx-background-color:" + BG_PANEL + ";" +
-                        "-fx-text-fill:" + TEXT_PRI + ";" +
-                        "-fx-font-family:'Courier New';" +
-                        "-fx-font-size:13;"
-                    ));
-                }
+            // ── Fixed items at the top ─────────────────────────────────────────
+            items.add(ALL_PORTFOLIOS);
+            items.add(FILTER_US + " (" + usCount + ")");
+            items.add(FILTER_SA + " (" + saCount + ")");
+            // ── Separator label (non-selectable visual divider) ────────────────
+            items.add("── Your Portfolios ──");
+            // ── User portfolios with badges ────────────────────────────────────
+            for (String name : dao.getAllPortfolioNames()) {
+                items.add(name + " (" + counts.getOrDefault(name, 0L) + ")");
             }
-        });
 
+            portfolioFilter.setItems(items);
 
-        portfolioFilter.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? "" : item);
-                setStyle(
-                    "-fx-text-fill:" + TEXT_PRI + ";" +
-                    "-fx-font-family:'Courier New';" +
-                    "-fx-font-size:13;" +
-                    "-fx-background-color:transparent;"
-                );
-            }
-        });
-        portfolioCountLabel.setText(String.valueOf(counts.size()));
+            // Make the separator non-selectable and style all cells explicitly
+            portfolioFilter.setCellFactory(lv -> new ListCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setStyle("-fx-background-color:" + BG_PANEL + ";");
+                        setDisable(false);
+                        return;
+                    }
+                    if (item.startsWith("──")) {
 
-        String restored = items.stream()
-                .filter(i -> !i.startsWith("──"))
-                .filter(i -> stripBadge(i).equals(current))
-                .findFirst()
-                .orElse(ALL_PORTFOLIOS);
-        portfolioFilter.setValue(restored);
+                        setText(item);
+                        setDisable(true);
+                        setStyle(
+                                "-fx-background-color:" + BG_DEEP + ";" +
+                                        "-fx-text-fill:" + TEXT_SEC + ";" +
+                                        "-fx-font-size:11;" +
+                                        "-fx-font-family:'Courier New';" +
+                                        "-fx-opacity:1;");
+                    } else {
+
+                        setText(item);
+                        setDisable(false);
+                        setStyle(
+                                "-fx-background-color:" + BG_PANEL + ";" +
+                                        "-fx-text-fill:" + TEXT_PRI + ";" +
+                                        "-fx-font-family:'Courier New';" +
+                                        "-fx-font-size:13;");
+
+                        setOnMouseEntered(e -> {
+                            if (!isDisabled())
+                                setStyle(
+                                        "-fx-background-color:" + BG_ROW + ";" +
+                                                "-fx-text-fill:" + ACCENT + ";" +
+                                                "-fx-font-family:'Courier New';" +
+                                                "-fx-font-size:13;");
+                        });
+                        setOnMouseExited(e -> setStyle(
+                                "-fx-background-color:" + BG_PANEL + ";" +
+                                        "-fx-text-fill:" + TEXT_PRI + ";" +
+                                        "-fx-font-family:'Courier New';" +
+                                        "-fx-font-size:13;"));
+                    }
+                }
+            });
+
+            portfolioFilter.setButtonCell(new ListCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? "" : item);
+                    setStyle(
+                            "-fx-text-fill:" + TEXT_PRI + ";" +
+                                    "-fx-font-family:'Courier New';" +
+                                    "-fx-font-size:13;" +
+                                    "-fx-background-color:transparent;");
+                }
+            });
+            portfolioCountLabel.setText(String.valueOf(counts.size()));
+
+            String restored = items.stream()
+                    .filter(i -> !i.startsWith("──"))
+                    .filter(i -> stripBadge(i).equals(current))
+                    .findFirst()
+                    .orElse(ALL_PORTFOLIOS);
+            portfolioFilter.setValue(restored);
         } finally {
             isRefreshingDropdown = false;
         }
     }
 
-    /** "Tech (3)" → "Tech"  |  "🇺🇸  US Market (6)" → "🇺🇸  US Market" */
+    /** "Tech (3)" → "Tech" | "🇺🇸 US Market (6)" → "🇺🇸 US Market" */
     private String stripBadge(String item) {
-        if (item == null) return ALL_PORTFOLIOS;
+        if (item == null)
+            return ALL_PORTFOLIOS;
         return item.replaceAll("\\s*\\(\\d+\\)$", "").trim();
     }
 
@@ -548,15 +574,15 @@ public class MainView {
 
     private Button makeButton(String text, String bg, String fg) {
         Button b = new Button(text);
-        String base  = "-fx-background-color:" + bg + ";-fx-text-fill:" + fg +
-                       ";-fx-background-radius:6;-fx-cursor:hand;-fx-padding:8 20 8 20;" +
-                       "-fx-font-family:'Courier New';-fx-font-weight:bold;-fx-font-size:13;";
+        String base = "-fx-background-color:" + bg + ";-fx-text-fill:" + fg +
+                ";-fx-background-radius:6;-fx-cursor:hand;-fx-padding:8 20 8 20;" +
+                "-fx-font-family:'Courier New';-fx-font-weight:bold;-fx-font-size:13;";
         String hover = "-fx-background-color:" + ACCENT_DIM + ";-fx-text-fill:" + BG_DEEP +
-                       ";-fx-background-radius:6;-fx-cursor:hand;-fx-padding:8 20 8 20;" +
-                       "-fx-font-family:'Courier New';-fx-font-weight:bold;-fx-font-size:13;";
+                ";-fx-background-radius:6;-fx-cursor:hand;-fx-padding:8 20 8 20;" +
+                "-fx-font-family:'Courier New';-fx-font-weight:bold;-fx-font-size:13;";
         b.setStyle(base);
         b.setOnMouseEntered(e -> b.setStyle(hover));
-        b.setOnMouseExited(e  -> b.setStyle(base));
+        b.setOnMouseExited(e -> b.setStyle(base));
         return b;
     }
 
@@ -564,9 +590,9 @@ public class MainView {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         tf.setStyle("-fx-background-color:" + BG_ROW + ";-fx-border-color:" + BORDER +
-                    ";-fx-border-radius:6;-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
-                    ";-fx-prompt-text-fill:" + TEXT_SEC +
-                    ";-fx-font-family:'Courier New';-fx-padding:8 12 8 12;");
+                ";-fx-border-radius:6;-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
+                ";-fx-prompt-text-fill:" + TEXT_SEC +
+                ";-fx-font-family:'Courier New';-fx-padding:8 12 8 12;");
         return tf;
     }
 
