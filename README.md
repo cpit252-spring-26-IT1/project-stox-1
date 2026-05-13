@@ -23,13 +23,18 @@ lifetime profit/loss.
 
 
 ### ⏳ Planned Features (Backlog)
-* **Profit/Loss Tracking:** Automated calculation and display of portfolio performance over time. [#7](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/7)
+* **Profit/Loss Tracking:** Automated calculation and display of portfolio performance over time. [#9](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/9)
 * **Unit test implementation** [#10](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/10)
+* **Stocks Branding (Logos):** Display stock brand logos alongside their respective ticker symbols. [#13](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/13)
+* **Currency Conversion Support:** Multi-currency portfolio viewing (e.g., SAR & USD). [#14](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/14)
 
 ### 🛑 Deferred Features (Won't Implement / Future)
 * **UI Improvements:** [#11](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/11)
   * Replace the application interface font for eye appealing reading.
   * Implement interactive charts and graphs to visualize portfolio performance.
+* **Fractional Stock Shares Support:** Allow decimal value modification into stock entry logic (e.g., 0.5 shares). [#12](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/12)
+ 
+
 
 
 ## 🛠️ Prerequisites
