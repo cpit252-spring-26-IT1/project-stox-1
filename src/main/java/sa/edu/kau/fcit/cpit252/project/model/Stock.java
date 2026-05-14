@@ -53,6 +53,12 @@ public class Stock implements PortfolioComponent {
     @Override
     public double getValue() { return quantity * averageBuyPrice; }
 
+
+    public double getPnL() {
+        if (currentPrice <= 0) return 0;
+        return (currentPrice - averageBuyPrice) * quantity;
+    }
+
     @Override
     public void display(String indent) {
         System.out.println(indent + "Stock: " + ticker + " | value: " + getValue());

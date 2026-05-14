@@ -44,6 +44,7 @@ public class MainView {
     private static final String TEXT_SEC = "#8b949e";
     private static final String BORDER = "#30363d";
     private static final String DANGER = "#f85149";
+    private static final String COLOR_PROFIT = "#3fb950";
 
     private static final String ALL_PORTFOLIOS = "All Portfolios";
     private static final String MARKET_US = "US Market - Finnhub";
@@ -222,6 +223,45 @@ public class MainView {
             }
         });
 
+        // P&L column — green if profit, red if loss, grey if price not loaded yet
+        TableColumn<Stock, String> pnlCol = new TableColumn<>("P&L ($)");
+        pnlCol.setCellValueFactory(cd -> {
+            Stock stock = cd.getValue();
+            if (stock.getCurrentPrice() <= 0) {
+                // Live price not fetched yet — show placeholder
+                return new javafx.beans.property.SimpleStringProperty("—");
+            }
+            double pnl = stock.getPnL();
+            String sign = pnl >= 0 ? "+" : "";
+            return new javafx.beans.property.SimpleStringProperty(
+                    sign + String.format("%,.2f", pnl));
+        });
+        pnlCol.setCellFactory(tc -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+                setText(item);
+                // Pick color based on the value
+                String textColor;
+                if (item.equals("—")) {
+                    textColor = TEXT_SEC;          // grey — still loading
+                } else if (item.startsWith("+")) {
+                    textColor = COLOR_PROFIT;      // green — profit
+                } else {
+                    textColor = DANGER;            // red — loss
+                }
+                setStyle("-fx-text-fill:" + textColor + ";" +
+                         "-fx-font-family:'Courier New';" +
+                         "-fx-font-weight:bold;" +
+                         "-fx-alignment:CENTER-RIGHT;");
+            }
+        });
+
         // Delete column with confirmation dialog
         TableColumn<Stock, Void> deleteCol = new TableColumn<>("");
         deleteCol.setMinWidth(46);
@@ -250,7 +290,7 @@ public class MainView {
         });
 
         table.getColumns().addAll(
-                tickerCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, deleteCol);
+                tickerCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol, deleteCol);
         return table;
     }
 
