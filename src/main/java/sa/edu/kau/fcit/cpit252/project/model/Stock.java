@@ -59,6 +59,11 @@ public class Stock implements PortfolioComponent {
         return (currentPrice - averageBuyPrice) * quantity;
     }
 
+    public String getCurrencySymbol() {
+        if (market != null && market.contains("Tadawul")) return "SAR";
+        return "USD";
+    }
+
     @Override
     public void display(String indent) {
         System.out.println(indent + "Stock: " + ticker + " | value: " + getValue());

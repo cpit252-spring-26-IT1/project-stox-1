@@ -53,6 +53,13 @@ public class MainView {
     private static final String FILTER_US = "🇺🇸  US Market";
     private static final String FILTER_SA = "🇸🇦  Saudi Market";
 
+    private static final String CURRENCY_ORIGINAL = "Original";
+    private static final String CURRENCY_USD       = "USD $";
+    private static final String CURRENCY_SAR       = "SAR ﷼";
+
+    private static final double USD_TO_SAR = 3.75;
+    private static final double SAR_TO_USD = 1.0 / USD_TO_SAR;
+
     // ── State ─────────────────────────────────────────────────────────────────
 
     private final StockDAO dao = new SqliteStockDAO();
@@ -60,6 +67,7 @@ public class MainView {
 
     private Stage primaryStage;
     private ComboBox<String> portfolioFilter;
+    private ComboBox<String> currencySelector;
     private Label totalValueLabel;
     private Label stockCountLabel;
     private Label portfolioCountLabel;
@@ -177,9 +185,31 @@ public class MainView {
             refreshView(currentFilter());
         });
 
+        currencySelector = new ComboBox<>(FXCollections.observableArrayList(
+                CURRENCY_ORIGINAL, CURRENCY_USD, CURRENCY_SAR));
+        currencySelector.setValue(CURRENCY_ORIGINAL);
+        currencySelector.setPrefWidth(130);
+        currencySelector.setStyle(
+                "-fx-background-color:" + BG_PANEL +
+                ";-fx-border-color:" + BORDER + ";-fx-border-radius:6;" +
+                "-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
+                ";-fx-font-family:'Courier New';-fx-font-size:13;");
+        currencySelector.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item);
+                setStyle("-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Courier New';" +
+                         "-fx-font-size:13;-fx-background-color:transparent;");
+            }
+        });
+        currencySelector.setOnAction(e -> refreshView(currentFilter()));
+
         HBox bar = new HBox(12,
                 makeLabel("Portfolio:", "Courier New", 13, TEXT_SEC, false),
                 portfolioFilter,
+                makeLabel("Currency:", "Courier New", 13, TEXT_SEC, false),
+                currencySelector,
                 refreshBtn);
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
@@ -205,10 +235,9 @@ public class MainView {
         TableColumn<Stock, Integer> qtyCol = makeCol("QTY", "quantity", 70);
         TableColumn<Stock, Double> avgCol = makeCol("AVG BUY ($)", "averageBuyPrice", 120);
 
-        // Computed total value column
-        TableColumn<Stock, String> valueCol = new TableColumn<>("TOTAL VALUE ($)");
+        TableColumn<Stock, String> valueCol = new TableColumn<>("TOTAL VALUE");
         valueCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(
-                String.format("%,.2f", cd.getValue().getValue())));
+                convertAndFormat(cd.getValue().getValue(), cd.getValue().getCurrencySymbol())));
         valueCol.setCellFactory(tc -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -223,18 +252,16 @@ public class MainView {
             }
         });
 
-        // P&L column — green if profit, red if loss, grey if price not loaded yet
-        TableColumn<Stock, String> pnlCol = new TableColumn<>("P&L ($)");
+        TableColumn<Stock, String> pnlCol = new TableColumn<>("P&L");
         pnlCol.setCellValueFactory(cd -> {
             Stock stock = cd.getValue();
             if (stock.getCurrentPrice() <= 0) {
-                // Live price not fetched yet — show placeholder
                 return new javafx.beans.property.SimpleStringProperty("—");
             }
             double pnl = stock.getPnL();
             String sign = pnl >= 0 ? "+" : "";
             return new javafx.beans.property.SimpleStringProperty(
-                    sign + String.format("%,.2f", pnl));
+                    sign + convertAndFormat(pnl, stock.getCurrencySymbol()));
         });
         pnlCol.setCellFactory(tc -> new TableCell<>() {
             @Override
@@ -323,10 +350,10 @@ public class MainView {
             if (newVal.isBlank()) {
                 marketPreview.setText("");
             } else if (newVal.trim().matches("\\d+")) {
-                marketPreview.setText("⟶  " + MARKET_SA);
+                marketPreview.setText("⟶  " + MARKET_SA + "  (SAR ﷼)");
                 marketPreview.setTextFill(Color.web(ACCENT));
             } else {
-                marketPreview.setText("⟶  " + MARKET_US);
+                marketPreview.setText("⟶  " + MARKET_US + "  (USD $)");
                 marketPreview.setTextFill(Color.web(ACCENT));
             }
         });
@@ -478,8 +505,50 @@ public class MainView {
         }
 
         tableData.setAll(stocks);
-        totalValueLabel.setText(String.format("$ %,.2f", rootPortfolio.getValue()));
+        totalValueLabel.setText(calculateTotalValue(stocks));
         stockCountLabel.setText(stocks.size() + " asset" + (stocks.size() != 1 ? "s" : ""));
+    }
+
+    private String convertAndFormat(double amount, String originalCurrency) {
+        String display = currencySelector.getValue();
+        if (display == null || display.equals(CURRENCY_ORIGINAL)) {
+            return originalCurrency + " " + String.format("%,.2f", amount);
+        }
+        double converted;
+        String symbol;
+        if (display.equals(CURRENCY_USD)) {
+            converted = "SAR".equals(originalCurrency) ? amount * SAR_TO_USD : amount;
+            symbol = "USD";
+        } else {
+            converted = "USD".equals(originalCurrency) ? amount * USD_TO_SAR : amount;
+            symbol = "SAR";
+        }
+        return symbol + " " + String.format("%,.2f", converted);
+    }
+
+    private String calculateTotalValue(List<Stock> stocks) {
+        String display = currencySelector.getValue();
+        if (display == null || display.equals(CURRENCY_ORIGINAL)) {
+            boolean hasUS = false, hasSA = false;
+            double usdTotal = 0, sarTotal = 0;
+            for (Stock s : stocks) {
+                if (MARKET_US.equals(s.getMarket())) { hasUS = true; usdTotal += s.getValue(); }
+                else { hasSA = true; sarTotal += s.getValue(); }
+            }
+            if (hasUS && hasSA)
+                return String.format("USD %,.2f  +  SAR %,.2f", usdTotal, sarTotal);
+            if (hasSA) return "SAR " + String.format("%,.2f", sarTotal);
+            return "USD " + String.format("%,.2f", usdTotal);
+        }
+        double total = 0;
+        String symbol = display.equals(CURRENCY_USD) ? "USD" : "SAR";
+        for (Stock s : stocks) {
+            double v = s.getValue();
+            if (display.equals(CURRENCY_USD) && "SAR".equals(s.getCurrencySymbol())) v *= SAR_TO_USD;
+            else if (display.equals(CURRENCY_SAR) && "USD".equals(s.getCurrencySymbol())) v *= USD_TO_SAR;
+            total += v;
+        }
+        return symbol + " " + String.format("%,.2f", total);
     }
 
     private void refreshDropdown() {
