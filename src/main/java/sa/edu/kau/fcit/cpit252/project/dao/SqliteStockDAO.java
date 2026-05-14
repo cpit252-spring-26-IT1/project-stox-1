@@ -21,7 +21,7 @@ public class SqliteStockDAO implements StockDAO {
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "ticker VARCHAR(10) NOT NULL," +
                 "market VARCHAR(50)," +
-                "quantity INTEGER NOT NULL," +
+                "quantity REAL NOT NULL," +
                 "average_buy_price REAL NOT NULL," +
                 "portfolio_name VARCHAR(100) NOT NULL DEFAULT 'Main Portfolio'," +
                 "UNIQUE(ticker, portfolio_name)" +
@@ -55,7 +55,7 @@ public class SqliteStockDAO implements StockDAO {
 
             pstmt.setString(1, stock.getTicker().toUpperCase());
             pstmt.setString(2, stock.getMarket());
-            pstmt.setInt(3, stock.getQuantity());
+            pstmt.setDouble(3, stock.getQuantity());
             pstmt.setDouble(4, stock.getAverageBuyPrice());
             pstmt.setString(5, portfolioName);
 
@@ -80,7 +80,7 @@ public class SqliteStockDAO implements StockDAO {
                 Stock stock = new Stock(
                         rs.getString("ticker"),
                         rs.getString("market"),
-                        rs.getInt("quantity"),
+                        rs.getDouble("quantity"),
                         rs.getDouble("average_buy_price"),
                         rs.getString("portfolio_name")
                 );
@@ -108,7 +108,7 @@ public class SqliteStockDAO implements StockDAO {
                 Stock stock = new Stock(
                         rs.getString("ticker"),
                         rs.getString("market"),
-                        rs.getInt("quantity"),
+                        rs.getDouble("quantity"),
                         rs.getDouble("average_buy_price"),
                         rs.getString("portfolio_name")
                 );
@@ -149,7 +149,7 @@ public class SqliteStockDAO implements StockDAO {
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, stock.getMarket());
-            pstmt.setInt(2, stock.getQuantity());
+            pstmt.setDouble(2, stock.getQuantity());
             pstmt.setDouble(3, stock.getAverageBuyPrice());
             pstmt.setString(4, stock.getTicker());
             pstmt.setString(5, stock.getPortfolioName());

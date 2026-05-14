@@ -6,14 +6,14 @@ package sa.edu.kau.fcit.cpit252.project.model;
 public class Stock implements PortfolioComponent {
     private String ticker;
     private String market;
-    private int quantity;
+    private double quantity;
     private double averageBuyPrice;
     private String portfolioName;
     private double currentPrice; // Live market price
 
     public Stock() {}
 
-    public Stock(String ticker, String market, int quantity, double averageBuyPrice) {
+    public Stock(String ticker, String market, double quantity, double averageBuyPrice) {
         this.ticker = ticker;
         this.market = market;
         this.quantity = quantity;
@@ -21,7 +21,7 @@ public class Stock implements PortfolioComponent {
         this.portfolioName = "Main Portfolio";
     }
 
-    public Stock(String ticker, String market, int quantity, double averageBuyPrice, String portfolioName) {
+    public Stock(String ticker, String market, double quantity, double averageBuyPrice, String portfolioName) {
         this.ticker = ticker;
         this.market = market;
         this.quantity = quantity;
@@ -35,8 +35,8 @@ public class Stock implements PortfolioComponent {
     public String getMarket() { return market; }
     public void setMarket(String market) { this.market = market; }
 
-    public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public double getQuantity() { return quantity; }
+    public void setQuantity(double quantity) { this.quantity = quantity; }
 
     public double getAverageBuyPrice() { return averageBuyPrice; }
     public void setAverageBuyPrice(double averageBuyPrice) { this.averageBuyPrice = averageBuyPrice; }

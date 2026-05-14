@@ -232,7 +232,7 @@ public class MainView {
         TableColumn<Stock, String> marketCol = makeCol("MARKET", "market", 140);
         TableColumn<Stock, String> portfolioCol = makeCol("PORTFOLIO", "portfolioName", 160);
         TableColumn<Stock, Double> priceCol = makeCol("CURRENT PRICE ($)", "currentPrice", 140);
-        TableColumn<Stock, Integer> qtyCol = makeCol("QTY", "quantity", 70);
+        TableColumn<Stock, Double> qtyCol = makeCol("QTY", "quantity", 70);
         TableColumn<Stock, Double> avgCol = makeCol("AVG BUY ($)", "averageBuyPrice", 120);
 
         TableColumn<Stock, String> valueCol = new TableColumn<>("TOTAL VALUE");
@@ -368,7 +368,7 @@ public class MainView {
                 ";-fx-border-radius:6;-fx-background-radius:6;" +
                 "-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Courier New';");
 
-        TextField qtyField = makeField("Quantity");
+        TextField qtyField = makeField("Quantity  (e.g. 10, 1.5, 0.25)");
         TextField priceField = makeField("Average Buy Price ($)");
 
         Label errorLabel = makeLabel("", "Courier New", 12, DANGER, false);
@@ -389,12 +389,17 @@ public class MainView {
                 return;
             }
 
-            int qty;
+            double qty;
             double price;
             try {
-                qty = Integer.parseInt(qtyField.getText().trim());
+                qty = Double.parseDouble(qtyField.getText().trim());
             } catch (NumberFormatException ex) {
-                errorLabel.setText("Quantity must be a whole number.");
+                errorLabel.setText("Quantity must be a number (e.g. 10, 1.5, 0.25).");
+                return;
+            }
+            String qtyText = qtyField.getText().trim();
+            if (qtyText.contains(".") && qtyText.length() - qtyText.indexOf(".") > 3) {
+                errorLabel.setText("Quantity can have at most 2 decimal places.");
                 return;
             }
             try {
