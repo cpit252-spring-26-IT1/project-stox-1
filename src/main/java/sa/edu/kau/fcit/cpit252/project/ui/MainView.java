@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import sa.edu.kau.fcit.cpit252.project.api.FetcherFactory;
 import sa.edu.kau.fcit.cpit252.project.api.PriceFetcher;
+import javafx.scene.image.ImageView;
+import sa.edu.kau.fcit.cpit252.project.api.LogoService;
 
 /**
  * Main JavaFX view for stoX.
@@ -228,6 +230,30 @@ public class MainView {
                 "No stocks yet. Click '＋ Add Stock' to begin.",
                 "Courier New", 13, TEXT_SEC, false));
 
+        TableColumn<Stock, Void> logoCol = new TableColumn<>("");
+        logoCol.setMinWidth(40);
+        logoCol.setMaxWidth(40);
+        logoCol.setCellFactory(tc -> new TableCell<>() {
+            private final ImageView iv = new ImageView();
+            {
+                iv.setFitWidth(24);
+                iv.setFitHeight(24);
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    Stock s = getTableView().getItems().get(getIndex());
+                    iv.setImage(null);
+                    LogoService.loadLogoAsync(s.getTicker(), s.getMarket(), iv::setImage);
+                    setGraphic(iv);
+                    setAlignment(Pos.CENTER);
+                }
+            }
+        });
+
         TableColumn<Stock, String> tickerCol = makeCol("TICKER", "ticker", 100);
         TableColumn<Stock, String> marketCol = makeCol("MARKET", "market", 140);
         TableColumn<Stock, String> portfolioCol = makeCol("PORTFOLIO", "portfolioName", 160);
@@ -317,7 +343,7 @@ public class MainView {
         });
 
         table.getColumns().addAll(
-                tickerCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol, deleteCol);
+                logoCol, tickerCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol, deleteCol);
         return table;
     }
 
