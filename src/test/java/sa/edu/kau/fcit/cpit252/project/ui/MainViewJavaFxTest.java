@@ -207,8 +207,8 @@ class MainViewJavaFxTest extends ApplicationTest {
 
         interact(() -> table.setItems(FXCollections.observableArrayList(profitStock, lossStock, loadingStock)));
 
-        TableColumn<Stock, ?> valueColumn = table.getColumns().get(7);
-        TableColumn<Stock, ?> pnlColumn = table.getColumns().get(8);
+        TableColumn<Stock, ?> valueColumn = table.getColumns().get(8);
+        TableColumn<Stock, ?> pnlColumn = table.getColumns().get(9);
 
         assertEquals("USD 200.00", valueColumn.getCellObservableValue(profitStock).getValue());
         assertEquals("+USD 50.00", pnlColumn.getCellObservableValue(profitStock).getValue());

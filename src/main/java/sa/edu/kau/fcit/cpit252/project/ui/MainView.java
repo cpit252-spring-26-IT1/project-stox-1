@@ -27,6 +27,9 @@ import sa.edu.kau.fcit.cpit252.project.api.FetcherFactory;
 import sa.edu.kau.fcit.cpit252.project.api.PriceFetcher;
 import javafx.scene.image.ImageView;
 import sa.edu.kau.fcit.cpit252.project.api.LogoService;
+import javafx.geometry.Side;
+import sa.edu.kau.fcit.cpit252.project.model.StockSuggestion;
+import sa.edu.kau.fcit.cpit252.project.api.StockSuggestionService;
 
 /**
  * Main JavaFX view for stoX.
@@ -254,7 +257,16 @@ public class MainView {
             }
         });
 
-        TableColumn<Stock, String> tickerCol = makeCol("TICKER", "ticker", 100);
+        TableColumn<Stock, String> tickerCol = makeCol("TICKER", "ticker", 80);
+        tickerCol.setMaxWidth(80);
+
+        TableColumn<Stock, String> nameCol = new TableColumn<>("STOCK NAME");
+        nameCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(
+                StockSuggestionService.getStockName(cd.getValue().getTicker())
+        ));
+        nameCol.setMinWidth(220);
+        nameCol.setStyle("-fx-font-family:'Courier New';");
+
         TableColumn<Stock, String> marketCol = makeCol("MARKET", "market", 140);
         TableColumn<Stock, String> portfolioCol = makeCol("PORTFOLIO", "portfolioName", 160);
         TableColumn<Stock, Double> priceCol = makeCol("CURRENT PRICE ($)", "currentPrice", 140);
@@ -343,7 +355,7 @@ public class MainView {
         });
 
         table.getColumns().addAll(
-                logoCol, tickerCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol, deleteCol);
+                logoCol, tickerCol, nameCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol, deleteCol);
         return table;
     }
 
@@ -363,11 +375,97 @@ public class MainView {
 
         // Ticker field — restricted to English letters and digits only
         TextField tickerField = makeField("Ticker Symbol  (e.g. AAPL, 2222)");
+
+        // Dynamic dark-themed suggestion ContextMenu
+        ContextMenu autocompleteMenu = new ContextMenu();
+        autocompleteMenu.setStyle(
+                "-fx-background-color: " + BG_PANEL + ";" +
+                "-fx-border-color: " + BORDER + ";" +
+                "-fx-border-radius: 6;" +
+                "-fx-background-radius: 6;"
+        );
+
+        final boolean[] isSelectingSuggestion = {false};
+
         tickerField.textProperty().addListener((obs, oldVal, newVal) -> {
-            // Strip anything that is not A-Z, a-z, or 0-9
+            // 1. Enforce alphanumeric character input filtering
             String filtered = newVal.replaceAll("[^A-Za-z0-9]", "");
-            if (!filtered.equals(newVal))
+            if (!filtered.equals(newVal)) {
                 tickerField.setText(filtered);
+                return;
+            }
+
+            if (isSelectingSuggestion[0]) return;
+
+            String query = filtered.trim();
+            if (query.isEmpty()) {
+                autocompleteMenu.hide();
+                return;
+            }
+
+            // Fetch suggestions (up to 8 matched items)
+            List<StockSuggestion> matches = StockSuggestionService.search(query, 8);
+            if (matches.isEmpty()) {
+                autocompleteMenu.hide();
+                return;
+            }
+
+            autocompleteMenu.getItems().clear();
+            for (StockSuggestion s : matches) {
+                Label label = new Label(s.getTicker() + " - " + s.getName());
+                label.setPrefWidth(280);
+                label.setStyle(
+                        "-fx-text-fill:" + TEXT_PRI + ";" +
+                        "-fx-font-family:'Courier New';" +
+                        "-fx-font-size:13;" +
+                        "-fx-padding: 6 12 6 12;" +
+                        "-fx-background-color: transparent;"
+                );
+
+                label.setOnMouseEntered(me -> {
+                    label.setStyle(
+                            "-fx-text-fill:" + ACCENT + ";" +
+                            "-fx-font-family:'Courier New';" +
+                            "-fx-font-size:13;" +
+                            "-fx-padding: 6 12 6 12;" +
+                            "-fx-background-color:" + BG_ROW + ";"
+                    );
+                });
+
+                label.setOnMouseExited(me -> {
+                    label.setStyle(
+                            "-fx-text-fill:" + TEXT_PRI + ";" +
+                            "-fx-font-family:'Courier New';" +
+                            "-fx-font-size:13;" +
+                            "-fx-padding: 6 12 6 12;" +
+                            "-fx-background-color: transparent;"
+                    );
+                });
+
+                CustomMenuItem item = new CustomMenuItem(label, true);
+                item.setOnAction(e -> {
+                    isSelectingSuggestion[0] = true;
+                    tickerField.setText(s.getTicker());
+                    isSelectingSuggestion[0] = false;
+                    autocompleteMenu.hide();
+                });
+                autocompleteMenu.getItems().add(item);
+            }
+
+            if (!autocompleteMenu.isShowing() && tickerField.isFocused()) {
+                autocompleteMenu.show(tickerField, Side.BOTTOM, 0, 0);
+            }
+        });
+
+        // Ensure suggestions menu hides gracefully when focus is lost
+        tickerField.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) {
+                Platform.runLater(() -> {
+                    if (!autocompleteMenu.isFocused()) {
+                        autocompleteMenu.hide();
+                    }
+                });
+            }
         });
 
         // Market auto-detect preview label updates as user types
