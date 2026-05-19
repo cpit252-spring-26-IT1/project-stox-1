@@ -444,6 +444,130 @@ class MainViewJavaFxTest extends ApplicationTest {
         assertEquals(40, table.getItems().get(0).getCurrentPrice(), 0.001);
     }
 
+    // ── updatePercentageLabel coverage ────────────────────────────────────────
+
+    @Test
+    void updatePercentageLabelShowsLivePricesWhenStockListIsEmpty() throws Exception {
+        Label pctLabel = getField("marketValuePercentageLabel", Label.class);
+
+        invokeOnFx("updatePercentageLabel", new Class<?>[]{List.class}, List.of());
+
+        assertEquals("live prices", pctLabel.getText());
+    }
+
+    @Test
+    void updatePercentageLabelShowsGreenPercentageWhenPortfolioIsInProfit() throws Exception {
+        Label pctLabel = getField("marketValuePercentageLabel", Label.class);
+
+        // Buy price 100, current price 150 → +50%
+        Stock profitStock = new Stock("AAPL", "US Market - Finnhub", 2, 100, "Tech");
+        profitStock.setCurrentPrice(150);
+
+        invokeOnFx("updatePercentageLabel", new Class<?>[]{List.class}, List.of(profitStock));
+
+        assertTrue(pctLabel.getText().contains("+50.00%"));
+        assertTrue(pctLabel.getText().startsWith("live prices"));
+        // Color should be the profit green
+        assertEquals(javafx.scene.paint.Color.web("#3fb950"), pctLabel.getTextFill());
+    }
+
+    @Test
+    void updatePercentageLabelShowsRedPercentageWhenPortfolioIsAtLoss() throws Exception {
+        Label pctLabel = getField("marketValuePercentageLabel", Label.class);
+
+        // SAR stock: buy 40, current 20 → -50%
+        Stock lossStock = new Stock("2222", "Saudi Market - Tadawul", 1, 40, "Energy");
+        lossStock.setCurrentPrice(20);
+
+        invokeOnFx("updatePercentageLabel", new Class<?>[]{List.class}, List.of(lossStock));
+
+        assertTrue(pctLabel.getText().contains("-50.00%"));
+        assertEquals(javafx.scene.paint.Color.web("#f85149"), pctLabel.getTextFill());
+    }
+
+    @Test
+    void updatePercentageLabelShowsGreyPercentageWhenPortfolioIsBreakeven() throws Exception {
+        Label pctLabel = getField("marketValuePercentageLabel", Label.class);
+
+        // Buy price == current price → 0%
+        Stock breakevenStock = new Stock("MSFT", "US Market - Finnhub", 1, 100, "Tech");
+        breakevenStock.setCurrentPrice(100);
+
+        invokeOnFx("updatePercentageLabel", new Class<?>[]{List.class}, List.of(breakevenStock));
+
+        assertTrue(pctLabel.getText().contains("0.00%"));
+        assertEquals(javafx.scene.paint.Color.web("#8b949e"), pctLabel.getTextFill());
+    }
+
+    @Test
+    void updatePercentageLabelShowsZeroWhenAverageBuyPriceIsZero() throws Exception {
+        Label pctLabel = getField("marketValuePercentageLabel", Label.class);
+
+        // Stock with averageBuyPrice = 0 → totalCostUSD == 0 branch
+        Stock zeroCostStock = new Stock();
+        zeroCostStock.setTicker("ZERO");
+        zeroCostStock.setMarket("US Market - Finnhub");
+        zeroCostStock.setQuantity(1);
+        zeroCostStock.setAverageBuyPrice(0);
+        zeroCostStock.setPortfolioName("Test");
+        zeroCostStock.setCurrentPrice(0);
+
+        invokeOnFx("updatePercentageLabel", new Class<?>[]{List.class}, List.of(zeroCostStock));
+
+        assertTrue(pctLabel.getText().contains("0.00%"));
+    }
+
+    @Test
+    void deleteButtonCancelKeepsStockInTable() throws Exception {
+        TableView<Stock> table = getField("table", TableView.class);
+        int initialSize = table.getItems().size();
+
+        // Click the delete (✕) button on the first row
+        interact(() -> table.scrollTo(0));
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Find and click the ✕ button
+        Button deleteBtn = lookup(node -> node instanceof Button btn
+                && "✕".equals(btn.getText())).queryAs(Button.class);
+        clickOn(deleteBtn);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Click Cancel in the confirmation dialog
+        Button cancelBtn = lookup(node -> node instanceof Button btn
+                && btn.getText() != null
+                && btn.getText().contains("Cancel")).queryAs(Button.class);
+        clickOn(cancelBtn);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Stock should still be present
+        assertEquals(initialSize, table.getItems().size());
+    }
+
+    @Test
+    void deleteButtonOkRemovesStockFromTable() throws Exception {
+        TableView<Stock> table = getField("table", TableView.class);
+        int initialSize = table.getItems().size();
+
+        // Click the delete (✕) button on the first row
+        interact(() -> table.scrollTo(0));
+        WaitForAsyncUtils.waitForFxEvents();
+
+        Button deleteBtn = lookup(node -> node instanceof Button btn
+                && "✕".equals(btn.getText())).queryAs(Button.class);
+        clickOn(deleteBtn);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Click OK in the confirmation dialog
+        Button okBtn = lookup(node -> node instanceof Button btn
+                && btn.getText() != null
+                && btn.getText().equals("OK")).queryAs(Button.class);
+        clickOn(okBtn);
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // One stock should have been removed
+        assertEquals(initialSize - 1, table.getItems().size());
+    }
+
     @SuppressWarnings("unchecked")
     private <T> T getField(String name, Class<T> type) throws Exception {
         Field field = MainView.class.getDeclaredField(name);
@@ -524,6 +648,8 @@ class MainViewJavaFxTest extends ApplicationTest {
 
     private void openAddStockDialog() {
         clickOn(findButton("Add Stock"));
+        // Give the modal Stage time to render before querying its nodes
+        WaitForAsyncUtils.sleep(300, java.util.concurrent.TimeUnit.MILLISECONDS);
         WaitForAsyncUtils.waitForFxEvents();
         findTextField("Ticker Symbol");
     }

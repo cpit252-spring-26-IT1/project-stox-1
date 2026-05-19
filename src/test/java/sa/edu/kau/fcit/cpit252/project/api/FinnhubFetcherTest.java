@@ -77,4 +77,22 @@ class FinnhubFetcherTest {
         assertThrows(RuntimeException.class, () -> fetcher.fetchPrice("AAPL"));
         server.removeContext(path);
     }
+
+    @Test
+    void fetchPriceThrowsExceptionWhenCFieldIsJsonNull() throws Exception {
+        String path = "/null-c";
+        server.createContext(path, exchange -> {
+            String response = "{\"c\": null}";
+            exchange.sendResponseHeaders(200, response.length());
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(response.getBytes());
+            }
+        });
+
+        FinnhubFetcher fetcher = new FinnhubFetcher();
+        fetcher.setBaseUrl("http://localhost:" + port + path + "?symbol=%s&token=%s");
+
+        assertThrows(RuntimeException.class, () -> fetcher.fetchPrice("AAPL"));
+        server.removeContext(path);
+    }
 }

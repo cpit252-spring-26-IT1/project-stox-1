@@ -1,0 +1,246 @@
+/* Plus Jakarta Sans - Modern UI Stylesheet for stoX */
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    src: url('fonts/PlusJakartaSans-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-weight: bold;
+    src: url('fonts/PlusJakartaSans-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-weight: 600;
+    src: url('fonts/PlusJakartaSans-SemiBold.ttf');
+}
+
+/* Global Root & Fonts fallback */
+.root {
+    -fx-font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.label {
+    -fx-font-family: 'Plus Jakarta Sans', 'Segoe UI';
+}
+
+/* TabPane Styling - Sleek Modern Dark Mode Tabs */
+.tab-pane {
+    -fx-tab-min-width: 180px;
+    -fx-tab-max-width: 240px;
+    -fx-tab-min-height: 38px;
+}
+
+.tab-pane .tab-header-area {
+    -fx-padding: 0 0 10 0;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: #161b22;
+    -fx-background-radius: 6px 6px 0px 0px;
+    -fx-border-color: #30363d #30363d transparent #30363d;
+    -fx-border-width: 1px 1px 0px 1px;
+    -fx-border-radius: 6px 6px 0px 0px;
+    -fx-padding: 6 20 6 20;
+    -fx-cursor: hand;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-font-family: 'Plus Jakarta Sans';
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: #0d1117;
+    -fx-border-color: #00d4aa #30363d transparent #30363d;
+    -fx-border-width: 2px 1px 0px 1px;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #00d4aa;
+}
+
+.tab-pane .tab:hover:not(:selected) {
+    -fx-background-color: #1c2128;
+}
+
+.tab-pane .tab:hover:not(:selected) .tab-label {
+    -fx-text-fill: #e6edf3;
+}
+
+/* TableView Styling */
+.table-view {
+    -fx-background-color: #161b22;
+    -fx-background-radius: 8px;
+    -fx-border-color: #30363d;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #161b22;
+    -fx-background-radius: 8px 8px 0px 0px;
+}
+
+.table-view .column-header {
+    -fx-background-color: #161b22;
+    -fx-border-color: transparent #30363d #30363d transparent;
+    -fx-size: 40px;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #8b949e;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-alignment: CENTER-LEFT;
+}
+
+.table-view .table-row-cell {
+    -fx-background-color: #161b22;
+    -fx-border-color: transparent transparent #30363d transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-view .table-row-cell:filled:hover {
+    -fx-background-color: #1c2128;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #1c2128;
+    -fx-text-fill: #00d4aa;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: #e6edf3;
+    -fx-padding: 12px 8px;
+    -fx-font-size: 13px;
+    -fx-font-family: 'Plus Jakarta Sans';
+}
+
+/* ComboBox Styling */
+.combo-box {
+    -fx-background-color: #161b22;
+    -fx-border-color: #30363d;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #e6edf3;
+    -fx-font-family: 'Plus Jakarta Sans';
+    -fx-font-size: 13px;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #161b22;
+    -fx-border-color: #30363d;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+.combo-box-popup .list-cell {
+    -fx-background-color: #161b22;
+    -fx-text-fill: #e6edf3;
+    -fx-padding: 8px 12px;
+    -fx-font-family: 'Plus Jakarta Sans';
+    -fx-font-size: 13px;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #1c2128;
+    -fx-text-fill: #00d4aa;
+}
+
+/* ScrollBar Styling */
+.scroll-bar:horizontal, .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+.scroll-bar:vertical .thumb, .scroll-bar:horizontal .thumb {
+    -fx-background-color: #30363d;
+    -fx-background-radius: 4px;
+}
+.scroll-bar:vertical .thumb:hover, .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #8b949e;
+}
+
+/* Custom Interactive Charts Styling */
+.chart {
+    -fx-padding: 10px;
+}
+
+.chart-content {
+    -fx-padding: 10px;
+}
+
+.chart-title {
+    -fx-text-fill: #e6edf3;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-font-family: 'Plus Jakarta Sans';
+}
+
+.chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 10px 0 0 0;
+}
+
+.chart-legend-item {
+    -fx-text-fill: #8b949e;
+    -fx-font-size: 12px;
+    -fx-font-family: 'Plus Jakarta Sans';
+}
+
+/* Axis Styling for BarChart */
+.axis {
+    -fx-tick-label-fill: #8b949e;
+    -fx-font-size: 10px;
+    -fx-font-family: 'Plus Jakarta Sans';
+}
+
+.axis-label {
+    -fx-text-fill: #e6edf3;
+    -fx-font-size: 11px;
+    -fx-font-family: 'Plus Jakarta Sans';
+    -fx-font-weight: bold;
+}
+
+/* Custom Slices for Allocation PieChart (harmonious modern palette) */
+.default-color0.chart-pie { -fx-pie-color: #00d4aa; } /* stoX Emerald Teal */
+.default-color1.chart-pie { -fx-pie-color: #38bdf8; } /* Sky Blue */
+.default-color2.chart-pie { -fx-pie-color: #a855f7; } /* Amethyst Violet */
+.default-color3.chart-pie { -fx-pie-color: #f43f5e; } /* Rose Red */
+.default-color4.chart-pie { -fx-pie-color: #eab308; } /* Amber Gold */
+.default-color5.chart-pie { -fx-pie-color: #3fb950; } /* Forest Green */
+.default-color6.chart-pie { -fx-pie-color: #f97316; } /* Tangerine Orange */
+.default-color7.chart-pie { -fx-pie-color: #6366f1; } /* Indigo Blue */
+
+/* Custom Bars for Cost vs Value BarChart */
+.chart-bar {
+    -fx-bar-gap: 2px;
+    -fx-category-gap: 20px;
+}
+
+/* Cost Series (Slate Gray border / Dark fill to look premium & cost-like) */
+.default-color0.chart-bar {
+    -fx-bar-fill: #1c2128;
+    -fx-background-color: #1c2128;
+    -fx-border-color: #8b949e;
+    -fx-border-width: 1px;
+    -fx-background-radius: 4px 4px 0 0;
+    -fx-border-radius: 4px 4px 0 0;
+}
+
+/* Market Value Series (Emerald Accent to show wealth/value) */
+.default-color1.chart-bar {
+    -fx-bar-fill: #00d4aa;
+    -fx-background-color: #00d4aa;
+    -fx-background-radius: 4px 4px 0 0;
+}

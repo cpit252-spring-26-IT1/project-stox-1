@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class DatabaseConnectionTest {
@@ -42,6 +43,22 @@ class DatabaseConnectionTest {
         constructor.setAccessible(true);
 
         constructor.newInstance();
+    }
+
+    @Test
+    void getConnectionCreatesNewConnectionWhenFieldIsNull() throws Exception {
+        // Set the static connection field to null to force the creation branch
+        setDatabaseConnection(null);
+
+        // getConnection() should load the driver and open a new SQLite connection
+        java.sql.Connection conn = DatabaseConnection.getConnection();
+
+        // Record the new connection for tearDown cleanup
+        connection = conn;
+
+        // The created connection must be non-null and open
+        java.util.Objects.requireNonNull(conn, "Expected a non-null connection");
+        assertFalse(conn.isClosed(), "Expected the connection to be open");
     }
 
     private void setDatabaseConnection(Connection connection) throws Exception {

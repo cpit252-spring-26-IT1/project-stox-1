@@ -30,6 +30,7 @@ import sa.edu.kau.fcit.cpit252.project.api.LogoService;
 import javafx.geometry.Side;
 import sa.edu.kau.fcit.cpit252.project.model.StockSuggestion;
 import sa.edu.kau.fcit.cpit252.project.api.StockSuggestionService;
+import javafx.scene.chart.*;
 
 /**
  * Main JavaFX view for stoX.
@@ -59,8 +60,8 @@ public class MainView {
     private static final String FILTER_SA = "🇸🇦  Saudi Market";
 
     private static final String CURRENCY_ORIGINAL = "Original";
-    private static final String CURRENCY_USD       = "USD $";
-    private static final String CURRENCY_SAR       = "SAR ﷼";
+    private static final String CURRENCY_USD = "USD $";
+    private static final String CURRENCY_SAR = "SAR ﷼";
 
     private static final double USD_TO_SAR = 3.75;
     private static final double SAR_TO_USD = 1.0 / USD_TO_SAR;
@@ -74,15 +75,29 @@ public class MainView {
     private ComboBox<String> portfolioFilter;
     private ComboBox<String> currencySelector;
     private Label totalValueLabel;
+    private Label totalMarketValueLabel;
     private Label stockCountLabel;
     private Label portfolioCountLabel;
+    private Label marketValuePercentageLabel;
     private TableView<Stock> table;
     private boolean isRefreshingDropdown = false;
+    private PieChart pieChart;
+    private BarChart<String, Number> barChart;
 
     // ─────────────────────────────────────────────────────────────────────────
 
     public void show(Stage stage) {
         this.primaryStage = stage;
+
+        // Programmatically load Plus Jakarta Sans fonts to register them globally in
+        // JavaFX
+        try {
+            Font.loadFont(getClass().getResourceAsStream("/fonts/PlusJakartaSans-Regular.ttf"), 12);
+            Font.loadFont(getClass().getResourceAsStream("/fonts/PlusJakartaSans-SemiBold.ttf"), 12);
+            Font.loadFont(getClass().getResourceAsStream("/fonts/PlusJakartaSans-Bold.ttf"), 12);
+        } catch (Exception e) {
+            System.err.println("Could not load Plus Jakarta Sans fonts: " + e.getMessage());
+        }
 
         stage.setTitle("stoX — Portfolio Manager");
         stage.setMinWidth(1280);
@@ -93,7 +108,13 @@ public class MainView {
         root.setTop(buildHeader());
         root.setCenter(buildCenter());
 
-        stage.setScene(new Scene(root, 1000, 680));
+        Scene scene = new Scene(root, 1000, 680);
+        try {
+            scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
+        } catch (Exception e) {
+            System.err.println("Could not load styles.css stylesheet: " + e.getMessage());
+        }
+        stage.setScene(scene);
         stage.show();
 
         refreshDropdown();
@@ -128,8 +149,222 @@ public class MainView {
     private VBox buildCenter() {
         VBox center = new VBox(16);
         center.setPadding(new Insets(20, 24, 20, 24));
-        center.getChildren().addAll(buildStatsRow(), buildFilterBar(), buildTable());
+
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        Tab tableTab = new Tab("📋  Asset List");
+        tableTab.setContent(buildTable());
+
+        Tab dashboardTab = new Tab("📊  Performance Dashboard");
+        dashboardTab.setContent(buildDashboardView());
+
+        tabPane.getTabs().addAll(tableTab, dashboardTab);
+        VBox.setVgrow(tabPane, Priority.ALWAYS);
+
+        center.getChildren().addAll(buildStatsRow(), buildFilterBar(), tabPane);
         return center;
+    }
+
+    private HBox buildDashboardView() {
+        HBox dashboard = new HBox(16);
+        dashboard.setPadding(new Insets(16, 0, 16, 0));
+
+        // Left Card: Asset Allocation
+        VBox allocationCard = new VBox(12);
+        allocationCard.setStyle("-fx-background-color:" + BG_PANEL + ";-fx-background-radius:8;-fx-border-color:"
+                + BORDER + ";-fx-border-radius:8;");
+        allocationCard.setPadding(new Insets(16));
+        HBox.setHgrow(allocationCard, Priority.ALWAYS);
+        Label allocTitle = makeLabel("ASSET ALLOCATION", "Plus Jakarta Sans", 14, TEXT_SEC, true);
+
+        pieChart = new PieChart();
+        pieChart.setLegendSide(Side.RIGHT);
+        pieChart.setLabelsVisible(true);
+        VBox.setVgrow(pieChart, Priority.ALWAYS);
+        allocationCard.getChildren().addAll(allocTitle, pieChart);
+
+        // Right Card: Performance Analysis (Cost vs Market Value)
+        VBox performanceCard = new VBox(12);
+        performanceCard.setStyle("-fx-background-color:" + BG_PANEL + ";-fx-background-radius:8;-fx-border-color:"
+                + BORDER + ";-fx-border-radius:8;");
+        performanceCard.setPadding(new Insets(16));
+        HBox.setHgrow(performanceCard, Priority.ALWAYS);
+        Label perfTitle = makeLabel("COST VS CURRENT VALUE", "Plus Jakarta Sans", 14, TEXT_SEC, true);
+
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        xAxis.setLabel("Ticker");
+        yAxis.setLabel("Value");
+
+        barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setAnimated(true);
+        VBox.setVgrow(barChart, Priority.ALWAYS);
+        performanceCard.getChildren().addAll(perfTitle, barChart);
+
+        dashboard.getChildren().addAll(allocationCard, performanceCard);
+        return dashboard;
+    }
+
+    private void updateCharts() {
+        if (pieChart == null || barChart == null)
+            return;
+
+        List<Stock> stocks = tableData;
+        if (stocks == null || stocks.isEmpty()) {
+            pieChart.getData().clear();
+            barChart.getData().clear();
+            return;
+        }
+
+        String displayCurrency = currencySelector.getValue();
+        boolean convertToUSD = false;
+        boolean convertToSAR = false;
+        if (CURRENCY_USD.equals(displayCurrency)) {
+            convertToUSD = true;
+        } else if (CURRENCY_SAR.equals(displayCurrency)) {
+            convertToSAR = true;
+        } else {
+            convertToUSD = true; // Normalize mixed currencies to USD for consistent charts
+        }
+
+        double totalChartValue = 0.0;
+        for (Stock s : stocks) {
+            double price = s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice();
+            double value = s.getQuantity() * price;
+            if (convertToUSD && "SAR".equals(s.getCurrencySymbol())) {
+                value *= SAR_TO_USD;
+            } else if (convertToSAR && "USD".equals(s.getCurrencySymbol())) {
+                value *= USD_TO_SAR;
+            }
+            totalChartValue += value;
+        }
+
+        // 1. Update Pie Chart
+        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
+        for (Stock s : stocks) {
+            double price = s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice();
+            double value = s.getQuantity() * price;
+            if (convertToUSD && "SAR".equals(s.getCurrencySymbol())) {
+                value *= SAR_TO_USD;
+            } else if (convertToSAR && "USD".equals(s.getCurrencySymbol())) {
+                value *= USD_TO_SAR;
+            }
+            if (value > 0) {
+                pieData.add(new PieChart.Data(s.getTicker(), value));
+            }
+        }
+        pieChart.setData(pieData);
+
+        double finalTotal = totalChartValue;
+        String currencyLabel = convertToSAR ? "SAR" : "USD";
+
+        for (PieChart.Data data : pieChart.getData()) {
+            double val = data.getPieValue();
+            double percentage = finalTotal > 0 ? (val / finalTotal) * 100 : 0.0;
+
+            Tooltip tooltip = new Tooltip(String.format("%s\nMarket Value: %s\nAllocation: %.1f%%",
+                    data.getName(),
+                    String.format("%s %,.2f", currencyLabel, val),
+                    percentage));
+            tooltip.setStyle("-fx-font-family: 'Plus Jakarta Sans'; -fx-font-size: 12px; " +
+                    "-fx-background-color: #0d1117; -fx-text-fill: #e6edf3; " +
+                    "-fx-border-color: #30363d; -fx-border-radius: 4px; -fx-padding: 8px;");
+
+            if (data.getNode() != null) {
+                Tooltip.install(data.getNode(), tooltip);
+                data.getNode().setOnMouseEntered(e -> {
+                    data.getNode().setScaleX(1.05);
+                    data.getNode().setScaleY(1.05);
+                    data.getNode().setCursor(javafx.scene.Cursor.HAND);
+                });
+                data.getNode().setOnMouseExited(e -> {
+                    data.getNode().setScaleX(1.0);
+                    data.getNode().setScaleY(1.0);
+                });
+            } else {
+                data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                    if (newNode != null) {
+                        Tooltip.install(newNode, tooltip);
+                        newNode.setOnMouseEntered(e -> {
+                            newNode.setScaleX(1.05);
+                            newNode.setScaleY(1.05);
+                            newNode.setCursor(javafx.scene.Cursor.HAND);
+                        });
+                        newNode.setOnMouseExited(e -> {
+                            newNode.setScaleX(1.0);
+                            newNode.setScaleY(1.0);
+                        });
+                    }
+                });
+            }
+        }
+
+        // 2. Update Bar Chart
+        barChart.getData().clear();
+
+        XYChart.Series<String, Number> costSeries = new XYChart.Series<>();
+        costSeries.setName("Total Cost Basis");
+
+        XYChart.Series<String, Number> valueSeries = new XYChart.Series<>();
+        valueSeries.setName("Current Market Value");
+
+        for (Stock s : stocks) {
+            double cost = s.getQuantity() * s.getAverageBuyPrice();
+            if (convertToUSD && "SAR".equals(s.getCurrencySymbol())) {
+                cost *= SAR_TO_USD;
+            } else if (convertToSAR && "USD".equals(s.getCurrencySymbol())) {
+                cost *= USD_TO_SAR;
+            }
+            costSeries.getData().add(new XYChart.Data<>(s.getTicker(), cost));
+
+            double price = s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice();
+            double curVal = s.getQuantity() * price;
+            if (convertToUSD && "SAR".equals(s.getCurrencySymbol())) {
+                curVal *= SAR_TO_USD;
+            } else if (convertToSAR && "USD".equals(s.getCurrencySymbol())) {
+                curVal *= USD_TO_SAR;
+            }
+            valueSeries.getData().add(new XYChart.Data<>(s.getTicker(), curVal));
+        }
+
+        barChart.getData().addAll(costSeries, valueSeries);
+
+        for (XYChart.Series<String, Number> series : barChart.getData()) {
+            for (XYChart.Data<String, Number> data : series.getData()) {
+                Tooltip tooltip = new Tooltip(String.format("%s\n%s: %s",
+                        data.getXValue(),
+                        series.getName(),
+                        String.format("%s %,.2f", currencyLabel, data.getYValue().doubleValue())));
+                tooltip.setStyle("-fx-font-family: 'Plus Jakarta Sans'; -fx-font-size: 12px; " +
+                        "-fx-background-color: #0d1117; -fx-text-fill: #e6edf3; " +
+                        "-fx-border-color: #30363d; -fx-border-radius: 4px; -fx-padding: 8px;");
+
+                if (data.getNode() != null) {
+                    Tooltip.install(data.getNode(), tooltip);
+                    data.getNode().setOnMouseEntered(e -> {
+                        data.getNode().setOpacity(0.85);
+                        data.getNode().setCursor(javafx.scene.Cursor.HAND);
+                    });
+                    data.getNode().setOnMouseExited(e -> {
+                        data.getNode().setOpacity(1.0);
+                    });
+                } else {
+                    data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+                        if (newNode != null) {
+                            Tooltip.install(newNode, tooltip);
+                            newNode.setOnMouseEntered(e -> {
+                                newNode.setOpacity(0.85);
+                                newNode.setCursor(javafx.scene.Cursor.HAND);
+                            });
+                            newNode.setOnMouseExited(e -> {
+                                newNode.setOpacity(1.0);
+                            });
+                        }
+                    });
+                }
+            }
+        }
     }
 
     // ── Stats row — Total Value card + Portfolio count card ───────────────────
@@ -144,7 +379,16 @@ public class MainView {
                 stockCountLabel);
         styleCard(valueCard);
 
-        // Card 2 — portfolio count
+        // Card 2: Total market value
+        totalMarketValueLabel = makeLabel("$ 0.00", "Courier New", 30, ACCENT, true);
+        marketValuePercentageLabel = makeLabel("live prices", "Courier New", 13, TEXT_SEC, false);
+        VBox marketValueCard = new VBox(3,
+                makeLabel("TOTAL MARKET VALUE", "Courier New", 11, TEXT_SEC, false),
+                totalMarketValueLabel,
+                marketValuePercentageLabel);
+        styleCard(marketValueCard);
+
+        // Card 3 — portfolio count
         portfolioCountLabel = makeLabel("0", "Courier New", 30, ACCENT, true);
         VBox portfolioCard = new VBox(3,
                 makeLabel("PORTFOLIOS", "Courier New", 11, TEXT_SEC, false),
@@ -152,7 +396,7 @@ public class MainView {
                 makeLabel("distinct portfolios", "Courier New", 13, TEXT_SEC, false));
         styleCard(portfolioCard);
 
-        HBox row = new HBox(16, valueCard, portfolioCard);
+        HBox row = new HBox(16, valueCard, marketValueCard, portfolioCard);
         return row;
     }
 
@@ -172,7 +416,7 @@ public class MainView {
                 "-fx-background-color:" + BG_PANEL +
                         ";-fx-border-color:" + BORDER + ";-fx-border-radius:6;" +
                         "-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
-                        ";-fx-font-family:'Courier New';-fx-font-size:13;");
+                        ";-fx-font-family:'Plus Jakarta Sans';-fx-font-size:13;");
 
         portfolioFilter.setOnAction(e -> {
             if (isRefreshingDropdown)
@@ -196,24 +440,24 @@ public class MainView {
         currencySelector.setPrefWidth(130);
         currencySelector.setStyle(
                 "-fx-background-color:" + BG_PANEL +
-                ";-fx-border-color:" + BORDER + ";-fx-border-radius:6;" +
-                "-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
-                ";-fx-font-family:'Courier New';-fx-font-size:13;");
+                        ";-fx-border-color:" + BORDER + ";-fx-border-radius:6;" +
+                        "-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
+                        ";-fx-font-family:'Plus Jakarta Sans';-fx-font-size:13;");
         currencySelector.setButtonCell(new ListCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? "" : item);
-                setStyle("-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Courier New';" +
-                         "-fx-font-size:13;-fx-background-color:transparent;");
+                setStyle("-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Plus Jakarta Sans';" +
+                        "-fx-font-size:13;-fx-background-color:transparent;");
             }
         });
         currencySelector.setOnAction(e -> refreshView(currentFilter()));
 
         HBox bar = new HBox(12,
-                makeLabel("Portfolio:", "Courier New", 13, TEXT_SEC, false),
+                makeLabel("Portfolio:", "Plus Jakarta Sans", 13, TEXT_SEC, false),
                 portfolioFilter,
-                makeLabel("Currency:", "Courier New", 13, TEXT_SEC, false),
+                makeLabel("Currency:", "Plus Jakarta Sans", 13, TEXT_SEC, false),
                 currencySelector,
                 refreshBtn);
         bar.setAlignment(Pos.CENTER_LEFT);
@@ -231,7 +475,7 @@ public class MainView {
         VBox.setVgrow(table, Priority.ALWAYS);
         table.setPlaceholder(makeLabel(
                 "No stocks yet. Click '＋ Add Stock' to begin.",
-                "Courier New", 13, TEXT_SEC, false));
+                "Plus Jakarta Sans", 13, TEXT_SEC, false));
 
         TableColumn<Stock, Void> logoCol = new TableColumn<>("");
         logoCol.setMinWidth(40);
@@ -242,6 +486,7 @@ public class MainView {
                 iv.setFitWidth(24);
                 iv.setFitHeight(24);
             }
+
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -262,10 +507,9 @@ public class MainView {
 
         TableColumn<Stock, String> nameCol = new TableColumn<>("STOCK NAME");
         nameCol.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(
-                StockSuggestionService.getStockName(cd.getValue().getTicker())
-        ));
+                StockSuggestionService.getStockName(cd.getValue().getTicker())));
         nameCol.setMinWidth(220);
-        nameCol.setStyle("-fx-font-family:'Courier New';");
+        nameCol.setStyle("-fx-font-family:'Plus Jakarta Sans';");
 
         TableColumn<Stock, String> marketCol = makeCol("MARKET", "market", 140);
         TableColumn<Stock, String> portfolioCol = makeCol("PORTFOLIO", "portfolioName", 160);
@@ -285,7 +529,7 @@ public class MainView {
                     return;
                 }
                 setText(item);
-                setStyle("-fx-text-fill:" + ACCENT + ";-fx-font-family:'Courier New';" +
+                setStyle("-fx-text-fill:" + ACCENT + ";-fx-font-family:'Plus Jakarta Sans';" +
                         "-fx-alignment:CENTER-RIGHT;");
             }
         });
@@ -314,16 +558,38 @@ public class MainView {
                 // Pick color based on the value
                 String textColor;
                 if (item.equals("—")) {
-                    textColor = TEXT_SEC;          // grey — still loading
+                    textColor = TEXT_SEC; // grey — still loading
                 } else if (item.startsWith("+")) {
-                    textColor = COLOR_PROFIT;      // green — profit
+                    textColor = COLOR_PROFIT; // green — profit
                 } else {
-                    textColor = DANGER;            // red — loss
+                    textColor = DANGER; // red — loss
                 }
                 setStyle("-fx-text-fill:" + textColor + ";" +
-                         "-fx-font-family:'Courier New';" +
-                         "-fx-font-weight:bold;" +
-                         "-fx-alignment:CENTER-RIGHT;");
+                        "-fx-font-family:'Plus Jakarta Sans';" +
+                        "-fx-font-weight:bold;" +
+                        "-fx-alignment:CENTER-RIGHT;");
+            }
+        });
+
+        TableColumn<Stock, String> marketValueCol = new TableColumn<>("MARKET VALUE");
+        marketValueCol.setCellValueFactory(cd -> {
+            Stock s = cd.getValue();
+            double price = s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice();
+            double val = s.getQuantity() * price;
+            return new javafx.beans.property.SimpleStringProperty(
+                    convertAndFormat(val, s.getCurrencySymbol()));
+        });
+        marketValueCol.setCellFactory(tc -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    return;
+                }
+                setText(item);
+                setStyle("-fx-text-fill:" + ACCENT + ";-fx-font-family:'Plus Jakarta Sans';" +
+                        "-fx-alignment:CENTER-RIGHT;");
             }
         });
 
@@ -355,7 +621,8 @@ public class MainView {
         });
 
         table.getColumns().addAll(
-                logoCol, tickerCol, nameCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol, deleteCol);
+                logoCol, tickerCol, nameCol, marketCol, portfolioCol, priceCol, qtyCol, avgCol, valueCol, pnlCol,
+                marketValueCol, deleteCol);
         return table;
     }
 
@@ -380,22 +647,22 @@ public class MainView {
         ContextMenu autocompleteMenu = new ContextMenu();
         autocompleteMenu.setStyle(
                 "-fx-background-color: " + BG_PANEL + ";" +
-                "-fx-border-color: " + BORDER + ";" +
-                "-fx-border-radius: 6;" +
-                "-fx-background-radius: 6;"
-        );
+                        "-fx-border-color: " + BORDER + ";" +
+                        "-fx-border-radius: 6;" +
+                        "-fx-background-radius: 6;");
 
-        final boolean[] isSelectingSuggestion = {false};
+        final boolean[] isSelectingSuggestion = { false };
 
         tickerField.textProperty().addListener((obs, oldVal, newVal) -> {
-            // 1. Enforce alphanumeric character input filtering
-            String filtered = newVal.replaceAll("[^A-Za-z0-9]", "");
+            // 1. Enforce alphanumeric character and space input filtering (to allow searching by name)
+            String filtered = newVal.replaceAll("[^A-Za-z0-9 ]", "");
             if (!filtered.equals(newVal)) {
                 tickerField.setText(filtered);
                 return;
             }
 
-            if (isSelectingSuggestion[0]) return;
+            if (isSelectingSuggestion[0])
+                return;
 
             String query = filtered.trim();
             if (query.isEmpty()) {
@@ -416,30 +683,27 @@ public class MainView {
                 label.setPrefWidth(280);
                 label.setStyle(
                         "-fx-text-fill:" + TEXT_PRI + ";" +
-                        "-fx-font-family:'Courier New';" +
-                        "-fx-font-size:13;" +
-                        "-fx-padding: 6 12 6 12;" +
-                        "-fx-background-color: transparent;"
-                );
+                                "-fx-font-family:'Plus Jakarta Sans';" +
+                                "-fx-font-size:13;" +
+                                "-fx-padding: 6 12 6 12;" +
+                                "-fx-background-color: transparent;");
 
                 label.setOnMouseEntered(me -> {
                     label.setStyle(
                             "-fx-text-fill:" + ACCENT + ";" +
-                            "-fx-font-family:'Courier New';" +
-                            "-fx-font-size:13;" +
-                            "-fx-padding: 6 12 6 12;" +
-                            "-fx-background-color:" + BG_ROW + ";"
-                    );
+                                    "-fx-font-family:'Plus Jakarta Sans';" +
+                                    "-fx-font-size:13;" +
+                                    "-fx-padding: 6 12 6 12;" +
+                                    "-fx-background-color:" + BG_ROW + ";");
                 });
 
                 label.setOnMouseExited(me -> {
                     label.setStyle(
                             "-fx-text-fill:" + TEXT_PRI + ";" +
-                            "-fx-font-family:'Courier New';" +
-                            "-fx-font-size:13;" +
-                            "-fx-padding: 6 12 6 12;" +
-                            "-fx-background-color: transparent;"
-                    );
+                                    "-fx-font-family:'Plus Jakarta Sans';" +
+                                    "-fx-font-size:13;" +
+                                    "-fx-padding: 6 12 6 12;" +
+                                    "-fx-background-color: transparent;");
                 });
 
                 CustomMenuItem item = new CustomMenuItem(label, true);
@@ -469,7 +733,7 @@ public class MainView {
         });
 
         // Market auto-detect preview label updates as user types
-        Label marketPreview = makeLabel("", "Courier New", 12, TEXT_SEC, false);
+        Label marketPreview = makeLabel("", "Plus Jakarta Sans", 12, TEXT_SEC, false);
         tickerField.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal.isBlank()) {
                 marketPreview.setText("");
@@ -490,12 +754,12 @@ public class MainView {
         portfolioBox.setItems(FXCollections.observableArrayList(dao.getAllPortfolioNames()));
         portfolioBox.setStyle("-fx-background-color:" + BG_ROW + ";-fx-border-color:" + BORDER +
                 ";-fx-border-radius:6;-fx-background-radius:6;" +
-                "-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Courier New';");
+                "-fx-text-fill:" + TEXT_PRI + ";-fx-font-family:'Plus Jakarta Sans';");
 
         TextField qtyField = makeField("Quantity  (e.g. 10, 1.5, 0.25)");
         TextField priceField = makeField("Average Buy Price ($)");
 
-        Label errorLabel = makeLabel("", "Courier New", 12, DANGER, false);
+        Label errorLabel = makeLabel("", "Plus Jakarta Sans", 12, DANGER, false);
         errorLabel.setWrapText(true);
 
         Button saveBtn = makeButton("Save Stock", ACCENT, BG_DEEP);
@@ -584,7 +848,7 @@ public class MainView {
                 "-fx-background-color:" + BG_PANEL + ";" +
                         "-fx-border-color:" + BORDER + ";");
         alert.getDialogPane().lookup(".content.label").setStyle(
-                "-fx-text-fill:" + TEXT_SEC + ";-fx-font-family:'Courier New';");
+                "-fx-text-fill:" + TEXT_SEC + ";-fx-font-family:'Plus Jakarta Sans';");
 
         return alert.showAndWait()
                 .filter(r -> r == ButtonType.OK)
@@ -626,6 +890,9 @@ public class MainView {
                         stock.setCurrentPrice(livePrice);
                         if (table != null)
                             table.refresh();
+                        updateCharts();
+                        totalMarketValueLabel.setText(calculateTotalMarketValue(stocks));
+                        updatePercentageLabel(stocks);
                     });
                 } catch (Exception e) {
                     System.err.println("Failed to fetch real price for " + stock.getTicker() + ": " + e.getMessage());
@@ -635,7 +902,10 @@ public class MainView {
 
         tableData.setAll(stocks);
         totalValueLabel.setText(calculateTotalValue(stocks));
+        totalMarketValueLabel.setText(calculateTotalMarketValue(stocks));
         stockCountLabel.setText(stocks.size() + " asset" + (stocks.size() != 1 ? "s" : ""));
+        updateCharts();
+        updatePercentageLabel(stocks);
     }
 
     private String convertAndFormat(double amount, String originalCurrency) {
@@ -661,23 +931,109 @@ public class MainView {
             boolean hasUS = false, hasSA = false;
             double usdTotal = 0, sarTotal = 0;
             for (Stock s : stocks) {
-                if (MARKET_US.equals(s.getMarket())) { hasUS = true; usdTotal += s.getValue(); }
-                else { hasSA = true; sarTotal += s.getValue(); }
+                if (MARKET_US.equals(s.getMarket())) {
+                    hasUS = true;
+                    usdTotal += s.getValue();
+                } else {
+                    hasSA = true;
+                    sarTotal += s.getValue();
+                }
             }
             if (hasUS && hasSA)
                 return String.format("USD %,.2f  +  SAR %,.2f", usdTotal, sarTotal);
-            if (hasSA) return "SAR " + String.format("%,.2f", sarTotal);
+            if (hasSA)
+                return "SAR " + String.format("%,.2f", sarTotal);
             return "USD " + String.format("%,.2f", usdTotal);
         }
         double total = 0;
         String symbol = display.equals(CURRENCY_USD) ? "USD" : "SAR";
         for (Stock s : stocks) {
             double v = s.getValue();
-            if (display.equals(CURRENCY_USD) && "SAR".equals(s.getCurrencySymbol())) v *= SAR_TO_USD;
-            else if (display.equals(CURRENCY_SAR) && "USD".equals(s.getCurrencySymbol())) v *= USD_TO_SAR;
+            if (display.equals(CURRENCY_USD) && "SAR".equals(s.getCurrencySymbol()))
+                v *= SAR_TO_USD;
+            else if (display.equals(CURRENCY_SAR) && "USD".equals(s.getCurrencySymbol()))
+                v *= USD_TO_SAR;
             total += v;
         }
         return symbol + " " + String.format("%,.2f", total);
+    }
+
+    private String calculateTotalMarketValue(List<Stock> stocks) {
+        String display = currencySelector.getValue();
+        if (display == null || display.equals(CURRENCY_ORIGINAL)) {
+            boolean hasUS = false, hasSA = false;
+            double usdTotal = 0, sarTotal = 0;
+            for (Stock s : stocks) {
+                double price = s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice();
+                double val = s.getQuantity() * price;
+                if (MARKET_US.equals(s.getMarket())) {
+                    hasUS = true;
+                    usdTotal += val;
+                } else {
+                    hasSA = true;
+                    sarTotal += val;
+                }
+            }
+            if (hasUS && hasSA)
+                return String.format("USD %,.2f  +  SAR %,.2f", usdTotal, sarTotal);
+            if (hasSA)
+                return "SAR " + String.format("%,.2f", sarTotal);
+            return "USD " + String.format("%,.2f", usdTotal);
+        }
+        double total = 0;
+        String symbol = display.equals(CURRENCY_USD) ? "USD" : "SAR";
+        for (Stock s : stocks) {
+            double price = s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice();
+            double v = s.getQuantity() * price;
+            if (display.equals(CURRENCY_USD) && "SAR".equals(s.getCurrencySymbol()))
+                v *= SAR_TO_USD;
+            else if (display.equals(CURRENCY_SAR) && "USD".equals(s.getCurrencySymbol()))
+                v *= USD_TO_SAR;
+            total += v;
+        }
+        return symbol + " " + String.format("%,.2f", total);
+    }
+
+    private void updatePercentageLabel(List<Stock> stocks) {
+        if (stocks.isEmpty()) {
+            marketValuePercentageLabel.setText("live prices");
+            marketValuePercentageLabel.setTextFill(Color.web(TEXT_SEC));
+            return;
+        }
+        
+        double totalCostUSD = 0;
+        double totalMarketUSD = 0;
+        
+        for (Stock s : stocks) {
+            double cost = s.getQuantity() * s.getAverageBuyPrice();
+            double market = s.getQuantity() * (s.getCurrentPrice() > 0 ? s.getCurrentPrice() : s.getAverageBuyPrice());
+            
+            if ("SAR".equals(s.getCurrencySymbol())) {
+                cost *= SAR_TO_USD;
+                market *= SAR_TO_USD;
+            }
+            
+            totalCostUSD += cost;
+            totalMarketUSD += market;
+        }
+        
+        if (totalCostUSD == 0) {
+            marketValuePercentageLabel.setText("live prices  •  0.00%");
+            marketValuePercentageLabel.setTextFill(Color.web(TEXT_SEC));
+            return;
+        }
+        
+        double percentage = ((totalMarketUSD - totalCostUSD) / totalCostUSD) * 100;
+        String sign = percentage > 0 ? "+" : "";
+        marketValuePercentageLabel.setText(String.format("live prices  •  %s%.2f%%", sign, percentage));
+        
+        if (percentage > 0) {
+            marketValuePercentageLabel.setTextFill(Color.web(COLOR_PROFIT));
+        } else if (percentage < 0) {
+            marketValuePercentageLabel.setTextFill(Color.web(DANGER));
+        } else {
+            marketValuePercentageLabel.setTextFill(Color.web(TEXT_SEC));
+        }
     }
 
     private void refreshDropdown() {
@@ -727,7 +1083,7 @@ public class MainView {
                                 "-fx-background-color:" + BG_DEEP + ";" +
                                         "-fx-text-fill:" + TEXT_SEC + ";" +
                                         "-fx-font-size:11;" +
-                                        "-fx-font-family:'Courier New';" +
+                                        "-fx-font-family:'Plus Jakarta Sans';" +
                                         "-fx-opacity:1;");
                     } else {
 
@@ -736,7 +1092,7 @@ public class MainView {
                         setStyle(
                                 "-fx-background-color:" + BG_PANEL + ";" +
                                         "-fx-text-fill:" + TEXT_PRI + ";" +
-                                        "-fx-font-family:'Courier New';" +
+                                        "-fx-font-family:'Plus Jakarta Sans';" +
                                         "-fx-font-size:13;");
 
                         setOnMouseEntered(e -> {
@@ -744,13 +1100,13 @@ public class MainView {
                                 setStyle(
                                         "-fx-background-color:" + BG_ROW + ";" +
                                                 "-fx-text-fill:" + ACCENT + ";" +
-                                                "-fx-font-family:'Courier New';" +
+                                                "-fx-font-family:'Plus Jakarta Sans';" +
                                                 "-fx-font-size:13;");
                         });
                         setOnMouseExited(e -> setStyle(
                                 "-fx-background-color:" + BG_PANEL + ";" +
                                         "-fx-text-fill:" + TEXT_PRI + ";" +
-                                        "-fx-font-family:'Courier New';" +
+                                        "-fx-font-family:'Plus Jakarta Sans';" +
                                         "-fx-font-size:13;"));
                     }
                 }
@@ -763,7 +1119,7 @@ public class MainView {
                     setText(empty || item == null ? "" : item);
                     setStyle(
                             "-fx-text-fill:" + TEXT_PRI + ";" +
-                                    "-fx-font-family:'Courier New';" +
+                                    "-fx-font-family:'Plus Jakarta Sans';" +
                                     "-fx-font-size:13;" +
                                     "-fx-background-color:transparent;");
                 }
@@ -805,7 +1161,8 @@ public class MainView {
 
     private Label makeLabel(String text, String font, double size, String color, boolean bold) {
         Label l = new Label(text);
-        l.setFont(bold ? Font.font(font, FontWeight.BOLD, size) : Font.font(font, size));
+        String finalFont = "Courier New".equals(font) ? "Plus Jakarta Sans" : font;
+        l.setFont(bold ? Font.font(finalFont, FontWeight.BOLD, size) : Font.font(finalFont, size));
         l.setTextFill(Color.web(color));
         return l;
     }
@@ -814,10 +1171,10 @@ public class MainView {
         Button b = new Button(text);
         String base = "-fx-background-color:" + bg + ";-fx-text-fill:" + fg +
                 ";-fx-background-radius:6;-fx-cursor:hand;-fx-padding:8 20 8 20;" +
-                "-fx-font-family:'Courier New';-fx-font-weight:bold;-fx-font-size:13;";
+                "-fx-font-family:'Plus Jakarta Sans';-fx-font-weight:bold;-fx-font-size:13;";
         String hover = "-fx-background-color:" + ACCENT_DIM + ";-fx-text-fill:" + BG_DEEP +
                 ";-fx-background-radius:6;-fx-cursor:hand;-fx-padding:8 20 8 20;" +
-                "-fx-font-family:'Courier New';-fx-font-weight:bold;-fx-font-size:13;";
+                "-fx-font-family:'Plus Jakarta Sans';-fx-font-weight:bold;-fx-font-size:13;";
         b.setStyle(base);
         b.setOnMouseEntered(e -> b.setStyle(hover));
         b.setOnMouseExited(e -> b.setStyle(base));
@@ -830,19 +1187,19 @@ public class MainView {
         tf.setStyle("-fx-background-color:" + BG_ROW + ";-fx-border-color:" + BORDER +
                 ";-fx-border-radius:6;-fx-background-radius:6;-fx-text-fill:" + TEXT_PRI +
                 ";-fx-prompt-text-fill:" + TEXT_SEC +
-                ";-fx-font-family:'Courier New';-fx-padding:8 12 8 12;");
+                ";-fx-font-family:'Plus Jakarta Sans';-fx-padding:8 12 8 12;");
         return tf;
     }
 
     private VBox makeFieldGroup(String labelText, javafx.scene.Node field) {
-        return new VBox(4, makeLabel(labelText, "Courier New", 11, TEXT_SEC, false), field);
+        return new VBox(4, makeLabel(labelText, "Plus Jakarta Sans", 11, TEXT_SEC, false), field);
     }
 
     private <T> TableColumn<Stock, T> makeCol(String header, String property, double minWidth) {
         TableColumn<Stock, T> col = new TableColumn<>(header);
         col.setCellValueFactory(new PropertyValueFactory<>(property));
         col.setMinWidth(minWidth);
-        col.setStyle("-fx-font-family:'Courier New';");
+        col.setStyle("-fx-font-family:'Plus Jakarta Sans';");
         return col;
     }
 }

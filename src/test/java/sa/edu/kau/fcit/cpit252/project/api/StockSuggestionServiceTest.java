@@ -95,4 +95,21 @@ class StockSuggestionServiceTest {
         assertEquals("Unknown Stock", StockSuggestionService.getStockName(null));
         assertEquals("Unknown Stock", StockSuggestionService.getStockName("   "));
     }
+
+    @Test
+    void stockSuggestionGetMarketReturnsCorrectMarket() {
+        List<StockSuggestion> results = StockSuggestionService.search("AAPL", 1);
+        assertFalse(results.isEmpty());
+        // AAPL is a US stock
+        assertEquals("US Market - Finnhub", results.get(0).getMarket());
+    }
+
+    @Test
+    void stockSuggestionToStringContainsTickerAndName() {
+        List<StockSuggestion> results = StockSuggestionService.search("AAPL", 1);
+        assertFalse(results.isEmpty());
+        String text = results.get(0).toString();
+        assertTrue(text.contains("AAPL"));
+        assertTrue(text.contains(" - "));
+    }
 }
