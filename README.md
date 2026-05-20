@@ -20,22 +20,15 @@ lifetime profit/loss.
 * **Interactive Dashboard:** A custom-styled JavaFX UI form allowing users to dynamically add, view, and remove stock assets. [#5](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/5)
 * **API Market Integration:** Connecting to live market APIs (e.g., Finnhub/Sahmk) to fetch real-time stock prices. [#6](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/6)
 * **API Data Caching & Optimization:** Building a caching mechanism and timeout handler has been deferred. Because live API fetches are not yet active in this stage, caching is currently out of scope and will be implemented in a future release. [#8](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/8)
-
-
-### ⏳ Planned Features (Backlog)
 * **Profit/Loss Tracking:** Automated calculation and display of portfolio performance over time. [#9](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/9)
+* **Currency Conversion Support:** Multi-currency portfolio viewing (e.g., SAR & USD). [#14](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/14)
+* **Fractional Stock Shares Support:** Allow decimal value modification into stock entry logic (e.g., 0.5 shares). [#12](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/12)
 * **Unit test implementation** [#10](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/10)
 * **Stocks Branding (Logos):** Display stock brand logos alongside their respective ticker symbols. [#13](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/13)
-* **Currency Conversion Support:** Multi-currency portfolio viewing (e.g., SAR & USD). [#14](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/14)
-
-### 🛑 Deferred Features (Won't Implement / Future)
+* **Search bar for stocks suggestion:** Suggests stock symbols and company names as the user types. [#15](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/15)
 * **UI Improvements:** [#11](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/11)
   * Replace the application interface font for eye appealing reading.
   * Implement interactive charts and graphs to visualize portfolio performance.
-* **Fractional Stock Shares Support:** Allow decimal value modification into stock entry logic (e.g., 0.5 shares). [#12](https://github.com/cpit252-spring-26-IT1/project-stox-1/issues/12)
- 
-
-
 
 ## 🛠️ Prerequisites
 ### To run this project, you must have the following installed:
@@ -83,7 +76,9 @@ SAHMK_API_KEY={place your Sahmk API key here}
 ```
 ## Screenshots
 ![stoX UI Dashboard](assets/ui-screenshot.png)
-![Add Stock Submenu](assets/ui-screenshot2.png)
+![Portfolio Performance menu](assets/ui-screenshot2.png)
+![Add Stock Submenu](assets/ui-screenshot3.png)
+
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
