@@ -80,5 +80,38 @@ SAHMK_API_KEY={place your Sahmk API key here}
 ![Add Stock Submenu](assets/ui-screenshot3.png)
 
 
+## 🤖 Generative AI Disclosure
+
+In alignment with academic integrity guidelines, this section discloses the utilization of Generative AI tools (Gemini, Google Antigraviy) during the design, implementation, and testing phases of the **stoX** application.
+
+### Tasks Assisted by Generative AI
+
+1. **Stock Brand Logos Display**:
+   - Assistance with creating the [LogoService.java](src/main/java/sa/edu/kau/fcit/cpit252/project/api/LogoService.java) model which handles downloading brand logos from [eodhd.com](eodhd.com) and [www.tadawulgroup.sa](www.tadawulgroup.sa) using a browser-like `User-Agent` and caching them inside a `ConcurrentHashMap`.
+   - Modifying the table cell factory inside [MainView.java](src/main/java/sa/edu/kau/fcit/cpit252/project/ui/MainView.java) to load logo images dynamically in the background next to ticker symbols.
+
+2. **Autocomplete Suggestions Engine**:
+   - Design of the suggestion model [StockSuggestion.java](src/main/java/sa/edu/kau/fcit/cpit252/project/model/StockSuggestion.java) and loading service [StockSuggestionService.java](src/main/java/sa/edu/kau/fcit/cpit252/project/api/StockSuggestionService.java) to parse large stock datasets asynchronously.
+   - Creating a dark-themed visual suggestions popup (`ContextMenu` overlay) under the Ticker Symbol input with interactive mouse-hover animations.
+   - Implementation of suggestion testing in [StockSuggestionServiceTest.java](src/main/java/sa/edu/kau/fcit/cpit252/project/api/StockSuggestionServiceTest.java) to verify async loading, case insensitivity, ranked matching, and Tadawul code mapping.
+
+3. **Frontend UI Redesign & Performance Dashboard**:
+   - Styling the entire JavaFX application using custom CSS in [styles.css](src/main/resources/styles.css) paired with the premium **Plus Jakarta Sans** font.
+   - Restructuring the main screen layout to feature a clean `TabPane` divided into **Asset List** and **Performance Dashboard**.
+   - Creating the interactive **Asset Allocation Pie Chart** (with scaling slices and allocation tooltips) and **Cost vs. Market Value Bar Chart** (with color-coded comparisons).
+   - Building the automated JavaFX TestFX UI integration test suite in [MainViewJavaFxTest.java](src/test/java/sa/edu/kau/fcit/cpit252/project/ui/MainViewJavaFxTest.java) to verify views, selections, deletes, currency conversion rates, and profit/loss display states.
+
+---
+
+### Human Role, Control & Oversight
+
+While Generative AI served as an accelerator for syntax generation, visual layouts, and boilerplate code:
+* **Architecture & Patterns Design**: The core structural planning remains entirely human. Developers designed and implemented the **Composite Pattern** (via [PortfolioComponent.java](src/main/java/sa/edu/kau/fcit/cpit252/project/model/PortfolioComponent.java), [Portfolio.java](src/main/java/sa/edu/kau/fcit/cpit252/project/model/Portfolio.java), and [Stock.java](src/main/java/sa/edu/kau/fcit/cpit252/project/model/Stock.java)), the DAO structure ([SqliteStockDAO.java](src/main/java/sa/edu/kau/fcit/cpit252/project/dao/SqliteStockDAO.java)), and the Singleton connection pattern in [DatabaseConnection.java](src/main/java/sa/edu/kau/fcit/cpit252/project/db/DatabaseConnection.java).
+* **Dataset Optimization**: Developers identified that the Saudi market stock database contained nearly 600,000 blank trailing records due to an Excel export formatting issue. The dataset was manually trimmed and cleaned, shrinking the file size from **4.7 MB to 12 KB** to optimize application startup and build size.
+* **Review, Debugging & Integration**: Every AI-suggested implementation plan, CSS stylesheet rule, and TestFX test was reviewed, modified to fix layout bugs, and verified against local Java 17/21 Maven environments.
+* **API Configurations**: Defined and configured credentials, retry policies, and caches for Tadawul and Finnhub APIs using environment-variable loaders.
+
+---
+
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
